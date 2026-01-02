@@ -146,7 +146,7 @@ key.setCertificate(cert);
 
     @param cert X.509 certificate to set
 */
-nothing XmlSecKey::setCertificate(SSLCertificate[QoreSSLCertificate] cert)) {
+nothing XmlSecKey::setCertificate(SSLCertificate[QoreSSLCertificate] cert) {
     ReferenceHolder<QoreSSLCertificate> holder(cert, xsink);
     SimpleRefHolder<QoreStringNode> cert_pem(cert->getPEM(xsink));
     if (*xsink)

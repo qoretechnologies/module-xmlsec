@@ -65,6 +65,10 @@ public:
     }
 
     DLLLOCAL xmlSecKeyPtr clone(ExceptionSink* xsink) {
+        AutoLocker al(this);
+        if (checkValidIntern(xsink)) {
+            return nullptr;
+        }
         xmlSecKeyPtr k = xmlSecKeyDuplicate(key);
         if (!k) {
             xsink->raiseException("XMLSECKEY-ERROR", "failed to copy key");
@@ -74,6 +78,10 @@ public:
     }
 
     DLLLOCAL QoreXmlSecKey* copy(ExceptionSink* xsink) {
+        AutoLocker al(this);
+        if (checkValidIntern(xsink)) {
+            return nullptr;
+        }
         xmlSecKeyPtr k = xmlSecKeyDuplicate(key);
         if (!k) {
             xsink->raiseException("XMLSECKEY-ERROR", "failed to copy key");
@@ -118,7 +126,7 @@ public:
         }
 
         const xmlChar* name = xmlSecKeyGetName(key);
-        return name ? new QoreStringNode(name) : nullptr;
+        return name ? new QoreStringNode((const char*)name) : nullptr;
     }
 
     DLLLOCAL xmlSecKeyDataType getType(ExceptionSink* xsink) {

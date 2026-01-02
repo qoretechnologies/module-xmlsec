@@ -98,6 +98,7 @@ public:
     }
 
     DLLLOCAL xmlSecKeysMngrPtr getKeyManager() {
+        AutoLocker al(this);
         return keyMgr;
     }
 };

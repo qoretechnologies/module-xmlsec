@@ -58,16 +58,43 @@ const EncHash = (
     ),
 );
 
+# Binary encryption template (no XML type)
+const BinaryEncHash = (
+    "EncryptedData": (
+        "^attributes^": (
+            "xmlns": "http://www.w3.org/2001/04/xmlenc#",
+        ),
+        "EncryptionMethod": (
+            "^attributes^": ( "Algorithm": "http://www.w3.org/2001/04/xmlenc#aes256-cbc") ),
+        "KeyInfo": (
+            "^attributes^": ( "xmlns": "http://www.w3.org/2000/09/xmldsig#" ),
+            "EncryptedKey": ( "^attributes^": ( "xmlns": "http://www.w3.org/2001/04/xmlenc#" ),
+            "EncryptionMethod": (
+                "^attributes^": ( "Algorithm": "http://www.w3.org/2001/04/xmlenc#rsa-1_5") ),
+                "KeyInfo": (
+                    "^attributes^": ( "xmlns": "http://www.w3.org/2000/09/xmldsig#" ),
+                    "X509Data": NOTHING,
+                ),
+                "CipherData": ( "CipherValue": NOTHING ),
+            ),
+        ),
+        "CipherData": ( "CipherValue": NOTHING ),
+    ),
+);
+
 class XmlSecTest inherits Test {
     public {
         int errors = 0;
         int ip = 0;
         string enc_tmpl;
+        string bin_enc_tmpl;
         Counter counter();
 
         XmlSecKey session_key;
         XmlSecKey cert_key;
         XmlSecKeyManager mgr;
+        string cert_data;
+        string key_data;
 
         const MyOpts = Opts + {
             "iters"   : "i,iters=i",
@@ -81,7 +108,16 @@ class XmlSecTest inherits Test {
     }
 
     constructor() : Test("XmlSecTest", "1.0", \ARGV, MyOpts) {
-        addTestCase("xmlsec", \run_tests());
+        addTestCase("basic sign/verify/encrypt/decrypt", \testBasicOperations());
+        addTestCase("key operations", \testKeyOperations());
+        addTestCase("key manager operations", \testKeyManagerOperations());
+        addTestCase("negative tests - signing", \testNegativeSigning());
+        addTestCase("negative tests - verification", \testNegativeVerification());
+        addTestCase("negative tests - encryption", \testNegativeEncryption());
+        addTestCase("negative tests - decryption", \testNegativeDecryption());
+        addTestCase("negative tests - key creation", \testNegativeKeyCreation());
+        addTestCase("binary encryption/decryption", \testBinaryEncryption());
+        addTestCase("multithreaded operations", \testMultithreaded());
 
         set_return_value(main());
 
@@ -93,70 +129,23 @@ class XmlSecTest inherits Test {
         }
     }
 
-    run_tests(*bool bg) {
-        on_error ++errors;
-        on_exit if (bg) {
-            counter.dec();
-        }
-
-        if (!bg) {
-            int t = m_options.threads ?? 1;
-            while (--t) {
-                counter.inc();
-                background run_tests(True);
-            }
-        }
-
-        string str;
-
-        for (int i = 0; i < m_options.iters; ++i) {
-            assertEq(256, session_key.getSize());
-            string template = getSignatureTemplate("1.0", "hello there, testing");
-
-            # sign the string with the certificate's private key
-            str = XmlSec::sign(template, cert_key);
-            if (m_options.showmsgs) {
-                printf("signed message:\n%s\n", str);
-            }
-
-            assertEq(Type::String, str.type());
-
-            # verify the signature
-            assertNothing(XmlSec::verify(str, cert_key));
-
-            # encrypt the signed message with a session key using the private key and certificate
-            string estr = XmlSec::encrypt(str, enc_tmpl, session_key, mgr);
-            if (m_options.showmsgs) {
-                printf("encrypted message:\n%s\n", estr);
-            }
-
-            assertEq(Type::String, estr.type());
-
-            # decrypt the message and compare to the original
-            string dstr = XmlSec::decrypt(estr, mgr);
-            assertEq(str, dstr);
-
-            ip += 1;
-        }
-
-        if (!bg) {
-            counter.waitForZero();
-        }
-    }
-
     private globalSetUp() {
         map m_options{$1.key} = $1.value, Defaults.pairIterator(), !exists m_options{$1.key};
 
         # set up encoding template XML string (EncHash defined below)
         enc_tmpl = m_options.format ? make_xml(EncHash, XGF_ADD_FORMATTING): make_xml(EncHash);
+        bin_enc_tmpl = m_options.format ? make_xml(BinaryEncHash, XGF_ADD_FORMATTING): make_xml(BinaryEncHash);
+
+        # Read certificate and key data
+        cert_data = File::readTextFile(m_options.certificate);
+        key_data = File::readTextFile(m_options.cert_key_file);
 
         # create session key
         session_key = new XmlSecKey(xmlSecKeyDataAesId, 256, xmlSecKeyDataTypeSession);
 
         # set up encryption key for certificate
-        cert_key = new XmlSecKey(File::readTextFile(m_options.cert_key_file), xmlSecKeyDataFormatPem,
-            m_options.password);
-        cert_key.setCertificate(File::readTextFile(m_options.certificate), xmlSecKeyDataFormatCertPem);
+        cert_key = new XmlSecKey(key_data, xmlSecKeyDataFormatPem, m_options.password);
+        cert_key.setCertificate(cert_data, xmlSecKeyDataFormatCertPem);
 
         # set up key manager
         mgr = new XmlSecKeyManager();
@@ -189,7 +178,7 @@ class XmlSecTest inherits Test {
                                         "^attributes^": ( "Algorithm": "http://www.w3.org/TR/2001/REC-xml-c14n-20010315" ),
                                     ),
                                     "SignatureMethod": (
-                                        "^attributes^": ( "Algorithm": "http://www.w3.org/2000/09/xmldsig#rsa-sha1" ),
+                                        "^attributes^": ( "Algorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" ),
                                     ),
                                     "Reference": (
                                         "^attributes^": ( "URI": NOTHING ),
@@ -207,7 +196,7 @@ class XmlSecTest inherits Test {
                                             ),
                                         ),
                                         "DigestMethod": (
-                                            "^attributes^": ( "Algorithm": "http://www.w3.org/2000/09/xmldsig#sha1" ),
+                                            "^attributes^": ( "Algorithm": "http://www.w3.org/2001/04/xmlenc#sha256" ),
                                         ),
                                         "DigestValue": NOTHING,
                                     ),
@@ -227,10 +216,315 @@ class XmlSecTest inherits Test {
         return m_options.format ? make_xml(h, XGF_ADD_FORMATTING): make_xml(h);
     }
 
+    testBasicOperations() {
+        assertEq(256, session_key.getSize());
+        string template = getSignatureTemplate("1.0", "hello there, testing");
+
+        # sign the string with the certificate's private key
+        string str = XmlSec::sign(template, cert_key);
+        if (m_options.showmsgs) {
+            printf("signed message:\n%s\n", str);
+        }
+
+        assertEq(Type::String, str.type());
+        assertTrue(str.size() > template.size());
+
+        # verify the signature
+        assertNothing(XmlSec::verify(str, cert_key));
+
+        # verify using the key's verify method
+        assertNothing(cert_key.verify(str));
+
+        # encrypt the signed message with a session key using the private key and certificate
+        string estr = XmlSec::encrypt(str, enc_tmpl, session_key, mgr);
+        if (m_options.showmsgs) {
+            printf("encrypted message:\n%s\n", estr);
+        }
+
+        assertEq(Type::String, estr.type());
+
+        # decrypt the message and compare to the original
+        string dstr = XmlSec::decrypt(estr, mgr);
+        assertEq(str, dstr);
+    }
+
+    testKeyOperations() {
+        # Test key creation from data
+        XmlSecKey key1(key_data, xmlSecKeyDataFormatPem, m_options.password);
+        assertTrue(key1 instanceof XmlSecKey);
+
+        # Test setName and getName
+        assertNothing(key1.setName("test-key-name"));
+        assertEq("test-key-name", key1.getName());
+
+        # Test getType
+        int keyType = key1.getType();
+        assertTrue(keyType > 0);
+
+        # Test getSize
+        int keySize = key1.getSize();
+        assertTrue(keySize > 0);
+
+        # Test key copy
+        XmlSecKey key2 = key1.copy();
+        assertTrue(key2 instanceof XmlSecKey);
+        assertEq("test-key-name", key2.getName());
+
+        # Test setCertificate with data
+        assertNothing(key1.setCertificate(cert_data, xmlSecKeyDataFormatCertPem));
+
+        # Test creating AES session key
+        XmlSecKey aesKey(xmlSecKeyDataAesId, 128, xmlSecKeyDataTypeSession);
+        assertEq(128, aesKey.getSize());
+
+        # Test creating AES key by name
+        XmlSecKey aesKey2("aes", 256, xmlSecKeyDataTypeSession);
+        assertEq(256, aesKey2.getSize());
+
+        # Test key without name returns NOTHING
+        XmlSecKey anonKey(xmlSecKeyDataAesId, 256, xmlSecKeyDataTypeSession);
+        assertNothing(anonKey.getName());
+    }
+
+    testKeyManagerOperations() {
+        # Test creating key manager
+        XmlSecKeyManager km();
+        assertTrue(km instanceof XmlSecKeyManager);
+
+        # Test adding key to manager
+        XmlSecKey key1(key_data, xmlSecKeyDataFormatPem, m_options.password);
+        key1.setCertificate(cert_data, xmlSecKeyDataFormatCertPem);
+        assertNothing(km.addKey(key1));
+
+        # Test loadCertFromMemory
+        XmlSecKeyManager km2();
+        assertNothing(km2.loadCertFromMemory(cert_data, xmlSecKeyDataFormatCertPem, xmlSecKeyDataTypeTrusted));
+
+        # Test loadCertFromPath
+        XmlSecKeyManager km3();
+        assertNothing(km3.loadCertFromPath(m_options.certificate, xmlSecKeyDataFormatCertPem, xmlSecKeyDataTypeTrusted));
+
+        # Test verify through key manager
+        string template = getSignatureTemplate("1.0", "manager test");
+        XmlSecKey signKey(key_data, xmlSecKeyDataFormatPem, m_options.password);
+        signKey.setCertificate(cert_data, xmlSecKeyDataFormatCertPem);
+        string signed_str = XmlSec::sign(template, signKey);
+
+        XmlSecKeyManager km4();
+        XmlSecKey verifyKey(key_data, xmlSecKeyDataFormatPem, m_options.password);
+        verifyKey.setCertificate(cert_data, xmlSecKeyDataFormatCertPem);
+        km4.addKey(verifyKey);
+        assertNothing(XmlSec::verify(signed_str, km4));
+        assertNothing(km4.verify(signed_str));
+    }
+
+    testNegativeSigning() {
+        # Test signing with invalid XML template
+        assertThrows("XMLSEC-SIGN-ERROR", \XmlSec::sign(), ("not valid xml", cert_key));
+
+        # Test signing with XML that has no signature node
+        assertThrows("XMLSEC-SIGN-ERROR", \XmlSec::sign(), ("<root><data>test</data></root>", cert_key));
+
+        # Test signing with empty string
+        assertThrows("XMLSEC-SIGN-ERROR", \XmlSec::sign(), ("", cert_key));
+    }
+
+    testNegativeVerification() {
+        string template = getSignatureTemplate("1.0", "test message");
+        string signed_str = XmlSec::sign(template, cert_key);
+
+        # Test verification with wrong key
+        XmlSecKey wrong_key(xmlSecKeyDataAesId, 256, xmlSecKeyDataTypeSession);
+        assertThrows("XMLSEC-DSIGCTX-ERROR", sub() {
+            XmlSec::verify(signed_str, wrong_key);
+        });
+
+        # Test verification with tampered signature
+        string tampered = replace(signed_str, "SignatureValue>", "SignatureValue>TAMPERED");
+        assertThrows("XMLSEC-VERIFY-ERROR", sub() {
+            XmlSec::verify(tampered, cert_key);
+        });
+
+        # Test verification with invalid XML
+        assertThrows("XMLSEC-VERIFY-ERROR", sub() {
+            XmlSec::verify("not valid xml", cert_key);
+        });
+
+        # Test verification with empty string
+        assertThrows("XMLSEC-VERIFY-ERROR", sub() {
+            XmlSec::verify("", cert_key);
+        });
+
+        # Test verification with XML that has no signature node
+        assertThrows("XMLSEC-VERIFY-ERROR", sub() {
+            XmlSec::verify("<root><data>test</data></root>", cert_key);
+        });
+
+        # Test verification with modified content (digest should fail)
+        string modified = replace(signed_str, "test message", "MODIFIED message");
+        assertThrows("XMLSEC-VERIFY-ERROR", sub() {
+            XmlSec::verify(modified, cert_key);
+        });
+    }
+
+    testNegativeEncryption() {
+        # Test encryption with invalid template XML
+        assertThrows("XMLSEC-ENCRYPT-ERROR", sub() {
+            XmlSec::encrypt("<data>test</data>", "not valid xml", session_key, mgr);
+        });
+
+        # Test encryption with template that has no EncryptedData node
+        assertThrows("XMLSEC-ENCRYPT-ERROR", sub() {
+            XmlSec::encrypt("<data>test</data>", "<root><data>test</data></root>", session_key, mgr);
+        });
+
+        # Test encryption with empty template
+        assertThrows("XMLSEC-ENCRYPT-ERROR", sub() {
+            XmlSec::encrypt("<data>test</data>", "", session_key, mgr);
+        });
+
+        # Test encryption with invalid data to encrypt
+        assertThrows("XMLSEC-ENCRYPT-ERROR", sub() {
+            XmlSec::encrypt("not valid xml", enc_tmpl, session_key, mgr);
+        });
+    }
+
+    testNegativeDecryption() {
+        # Test decryption with invalid XML
+        assertThrows("XMLSEC-DECRYPT-ERROR", \XmlSec::decrypt(), ("not valid xml", mgr));
+
+        # Test decryption with XML that has no EncryptedData node
+        assertThrows("XMLSEC-DECRYPT-ERROR", \XmlSec::decrypt(), ("<root><data>test</data></root>", mgr));
+
+        # Test decryption with empty string
+        assertThrows("XMLSEC-DECRYPT-ERROR", \XmlSec::decrypt(), ("", mgr));
+
+        # Test decryption with wrong key
+        string template = getSignatureTemplate("1.0", "decrypt test");
+        string signed_str = XmlSec::sign(template, cert_key);
+        string encrypted = XmlSec::encrypt(signed_str, enc_tmpl, session_key, mgr);
+
+        # Create a different key manager with wrong key
+        XmlSecKeyManager wrong_mgr();
+        XmlSecKey wrong_key(xmlSecKeyDataAesId, 256, xmlSecKeyDataTypeSession);
+        wrong_mgr.addKey(wrong_key);
+
+        assertThrows("XMLSEC-DECRYPT-ERROR", \XmlSec::decrypt(), (encrypted, wrong_mgr));
+    }
+
+    testNegativeKeyCreation() {
+        # Test key creation with invalid key data
+        assertThrows("XMLSECKEY-ERROR", sub() {
+            new XmlSecKey("not valid key data", xmlSecKeyDataFormatPem);
+        });
+
+        # Test key creation with wrong password
+        assertThrows("XMLSECKEY-ERROR", sub() {
+            new XmlSecKey(key_data, xmlSecKeyDataFormatPem, "wrong_password");
+        });
+
+        # Test key creation with invalid key ID
+        assertThrows("XMLSECKEY-KEYID-ERROR", sub() {
+            new XmlSecKey(99999, 256, xmlSecKeyDataTypeSession);
+        });
+
+        # Test setCertificate with invalid certificate data
+        XmlSecKey key1(key_data, xmlSecKeyDataFormatPem, m_options.password);
+        assertThrows("XMLSECKEY-ERROR", sub() {
+            key1.setCertificate("not valid cert", xmlSecKeyDataFormatCertPem);
+        });
+
+        # Test XmlSecKeyManager copy throws error
+        XmlSecKeyManager km();
+        assertThrows("XMLSECKEYMANAGER-COPY-ERROR", sub() {
+            XmlSecKeyManager km2 = km.copy();
+        });
+
+        # Test XmlSec constructor throws error (static class)
+        assertThrows("XMLSEC-CONSTRUCTOR-ERROR", sub() {
+            new XmlSec();
+        });
+    }
+
+    testBinaryEncryption() {
+        # Test binary data encryption
+        binary bin_data = binary("Hello, this is binary data for testing encryption!");
+
+        # Create a new session key for binary encryption
+        XmlSecKey bin_session_key(xmlSecKeyDataAesId, 256, xmlSecKeyDataTypeSession);
+
+        # Encrypt binary data
+        string encrypted = XmlSec::encrypt(bin_data, bin_enc_tmpl, bin_session_key, mgr);
+        assertTrue(encrypted.size() > 0);
+
+        if (m_options.showmsgs) {
+            printf("encrypted binary message:\n%s\n", encrypted);
+        }
+
+        # Decrypt and verify we get binary back
+        data decrypted = XmlSec::decrypt(encrypted, mgr);
+
+        # The decrypted data should be binary
+        assertEq(Type::Binary, decrypted.type());
+        assertEq(bin_data, decrypted);
+    }
+
+    testMultithreaded() {
+        on_error ++errors;
+
+        int t = m_options.threads ?? 1;
+        if (t <= 1) {
+            # Skip if only one thread
+            return;
+        }
+
+        while (--t) {
+            counter.inc();
+            background runThreadedTest(True);
+        }
+
+        # Run one iteration in main thread too
+        runThreadedTest(False);
+
+        counter.waitForZero();
+    }
+
+    private runThreadedTest(bool dec_counter) {
+        on_exit if (dec_counter) counter.dec();
+
+        try {
+            for (int i = 0; i < m_options.iters; ++i) {
+                string template = getSignatureTemplate("1.0", sprintf("threaded test %d", i));
+
+                # sign the string with the certificate's private key
+                string str = XmlSec::sign(template, cert_key);
+
+                # verify the signature
+                XmlSec::verify(str, cert_key);
+
+                # encrypt the signed message
+                string estr = XmlSec::encrypt(str, enc_tmpl, session_key, mgr);
+
+                # decrypt the message and compare to the original
+                string dstr = XmlSec::decrypt(estr, mgr);
+
+                if (str != dstr) {
+                    ++errors;
+                }
+
+                ++ip;
+            }
+        } catch (hash<ExceptionInfo> ex) {
+            ++errors;
+            printf("Thread error: %s: %s\n", ex.err, ex.desc);
+        }
+    }
+
     private usageIntern() {
         TestReporter::usageIntern(OptionColumn);
-        printOption("-f,--format", "format XML output seen with --m_options.verbose", OptionColumn);
+        printOption("-f,--format", "format XML output seen with --verbose", OptionColumn);
         printOption("-i,--iters=ARG", "runs ARG iterations of the tests in each thread", OptionColumn);
         printOption("-t,--threads=ARG", "runs tests in ARG threads", OptionColumn);
+        printOption("-S,--show-messages", "show XML messages during tests", OptionColumn);
     }
 }

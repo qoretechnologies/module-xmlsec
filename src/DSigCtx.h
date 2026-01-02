@@ -22,6 +22,10 @@
 
 #define _QORE_XMLSEC_DSIGCTX_H
 
+#ifdef NEED_XMLSEC_BIG_LOCK
+extern DLLLOCAL QoreThreadLock big_lock;
+#endif
+
 class DSigCtx {
 public:
     xmlSecDSigCtxPtr dsigCtx;
@@ -56,6 +60,9 @@ public:
     }
 
     DLLLOCAL int verify(xmlNodePtr node, ExceptionSink* xsink) {
+#ifdef NEED_XMLSEC_BIG_LOCK
+        AutoLocker al(big_lock);
+#endif
         if (xmlSecDSigCtxVerify(dsigCtx, node) < 0) {
             xsink->raiseException("XMLSEC-DSIGCTX-ERROR", "signature could not be verified");
             return -1;
@@ -79,7 +86,9 @@ public:
     }
 
     DLLLOCAL xmlSecTransformStatus getTransformStatus() {
-        assert(dsigCtx->signMethod);
+        if (!dsigCtx->signMethod) {
+            return xmlSecTransformStatusNone;
+        }
         return dsigCtx->signMethod->status;
     }
 };

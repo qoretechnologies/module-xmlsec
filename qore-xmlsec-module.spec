@@ -34,22 +34,24 @@
 
 Summary: XML Security Module for Qore
 Name: qore-xmlsec-module
-Version: 1.0.0
+Version: 1.0.1
 Release: 1%{dist}
-License: LGPL
+License: LGPL-2.1-or-later
 Group: Development/Languages
-URL: http://www.qoretechnologies.com/qore
-Source: http://prdownloads.sourceforge.net/qore/%{name}-%{version}.tar.gz
-#Source0: %{name}-%{version}.tar.gz
+URL: https://qoretechnologies.com/qore
+Source: https://github.com/qoretechnologies/module-xmlsec/releases/download/v%{version}/%{name}-%{version}.tar.bz2
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 Requires: /usr/bin/env
 Requires: qore-module-api-%{module_api}
 BuildRequires: gcc-c++
-BuildRequires: qore-devel
+BuildRequires: cmake >= 2.8.12
+BuildRequires: qore-devel >= 1.0
+BuildRequires: qore >= 1.0
+BuildRequires: libxml2-devel
 Requires: xmlsec1
 Requires: xmlsec1-openssl
 BuildRequires: xmlsec1-devel
-BuildRequires: qore
+BuildRequires: xmlsec1-openssl-devel
 %if 0%{?suse_version}
 BuildRequires: pkg-config
 %else
@@ -58,8 +60,7 @@ BuildRequires: pkgconfig
 
 %description
 This module provides classes and functions supporting the xmlenc and xmldsig
-standards from the xmlsec library.
-
+standards from the xmlsec library for the Qore Programming Language.
 
 %if 0%{?suse_version}
 %debug_package
@@ -67,15 +68,18 @@ standards from the xmlsec library.
 
 %prep
 %setup -q
-./configure RPM_OPT_FLAGS="$RPM_OPT_FLAGS" --prefix=/usr --disable-debug
 
 %build
-%{__make}
+%if 0%{?el7}
+# enable devtoolset-7 for C++11 support on RHEL 7
+. /opt/rh/devtoolset-7/enable
+%endif
+export CXXFLAGS="%{?optflags}"
+cmake -DCMAKE_INSTALL_PREFIX=%{_prefix} -DCMAKE_BUILD_TYPE=RELEASE .
+make %{?_smp_mflags}
 
 %install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/%{module_dir}
-mkdir -p $RPM_BUILD_ROOT/usr/share/doc/qore-xmlsec-module
 make install DESTDIR=$RPM_BUILD_ROOT
 
 %clean
@@ -84,10 +88,18 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{module_dir}
-%doc COPYING README RELEASE-NOTES ChangeLog AUTHORS docs/xmlsec-module-doc.html
+%doc COPYING README RELEASE-NOTES ChangeLog AUTHORS
 
 %changelog
-* Thu Nov 25 2011 David Nichols <david@qore.org> 1.0.0
+* Thu Jan 02 2025 David Nichols <david@qore.org> 1.0.1
+- updated to version 1.0.1
+- fixed memory leak in QoreXmlDoc::getString()
+- fixed typo in error message
+- fixed thread safety issues in key operations
+- added comprehensive test coverage
+- updated documentation with examples
+
+* Thu Nov 25 2021 David Nichols <david@qore.org> 1.0.0
 - updated to version 1.0.0
 - fixed build with newer libxmlsec1 builds
 - fixed tests

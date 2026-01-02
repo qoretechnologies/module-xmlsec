@@ -12,7 +12,8 @@
     - <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">LGPL 2.1</a>
     - MIT (see COPYING.MIT in the source distribution for more information)
     .
-    The module is tagged as such in the module's header (meaning it can be loaded unconditionally regardless of how the %Qore library was initialized).
+    The module is tagged as such in the module's header (meaning it can be loaded unconditionally
+    regardless of how the %Qore library was initialized).
 
     Like all Qore components, the xmlsec module is thread-safe.
 
@@ -21,7 +22,192 @@
     the @ref Qore::XmlSec::XmlSecKey "XmlSecKey" and @ref Qore::XmlSec::XmlSecKeyManager "XmlSecKeyManager"
     classes.
 
+    @section xmlsec_examples Usage Examples
+
+    @subsection xmlsec_sign_verify Signing and Verifying XML
+
+    @par Example: Sign an XML Document
+    @code{.py}
+%requires xmlsec
+%requires xml
+
+# Create a key from a PEM file
+XmlSecKey key(File::readTextFile("private-key.pem"), xmlSecKeyDataFormatPem, "password");
+key.setCertificate(File::readTextFile("certificate.pem"), xmlSecKeyDataFormatCertPem);
+
+# Create the signature template (using the xml module)
+hash sig_template = {
+    "Document": {
+        "Data": "content to sign",
+        "Signature": {
+            "^attributes^": {"xmlns": "http://www.w3.org/2000/09/xmldsig#"},
+            "SignedInfo": {
+                "CanonicalizationMethod": {
+                    "^attributes^": {"Algorithm": "http://www.w3.org/TR/2001/REC-xml-c14n-20010315"},
+                },
+                "SignatureMethod": {
+                    "^attributes^": {"Algorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"},
+                },
+                "Reference": {
+                    "^attributes^": {"URI": ""},
+                    "Transforms": {
+                        "Transform": {
+                            "^attributes^": {"Algorithm": "http://www.w3.org/2000/09/xmldsig#enveloped-signature"},
+                        },
+                    },
+                    "DigestMethod": {
+                        "^attributes^": {"Algorithm": "http://www.w3.org/2001/04/xmlenc#sha256"},
+                    },
+                    "DigestValue": NOTHING,
+                },
+            },
+            "SignatureValue": NOTHING,
+            "KeyInfo": {
+                "X509Data": NOTHING,
+            },
+        },
+    },
+};
+
+# Sign the template
+string signed_xml = XmlSec::sign(make_xml(sig_template), key);
+    @endcode
+
+    @par Example: Verify a Signed XML Document
+    @code{.py}
+# Verify using the same key (or public key/certificate)
+try {
+    XmlSec::verify(signed_xml, key);
+    printf("Signature is valid\n");
+} catch (hash<ExceptionInfo> ex) {
+    printf("Signature verification failed: %s\n", ex.desc);
+}
+    @endcode
+
+    @subsection xmlsec_encrypt_decrypt Encrypting and Decrypting XML
+
+    @par Example: Encrypt Data with a Session Key
+    @code{.py}
+# Create a session key for AES encryption
+XmlSecKey session_key(xmlSecKeyDataAesId, 256, xmlSecKeyDataTypeSession);
+
+# Create certificate key for encrypting the session key
+XmlSecKey cert_key(File::readTextFile("private-key.pem"), xmlSecKeyDataFormatPem, "password");
+cert_key.setCertificate(File::readTextFile("certificate.pem"), xmlSecKeyDataFormatCertPem);
+
+# Set up key manager
+XmlSecKeyManager mgr();
+mgr.addKey(cert_key);
+
+# Create encryption template
+hash enc_template = {
+    "EncryptedData": {
+        "^attributes^": {
+            "xmlns": "http://www.w3.org/2001/04/xmlenc#",
+            "Type": "http://www.w3.org/2001/04/xmlenc#Element",
+        },
+        "EncryptionMethod": {
+            "^attributes^": {"Algorithm": "http://www.w3.org/2001/04/xmlenc#aes256-cbc"},
+        },
+        "KeyInfo": {
+            "^attributes^": {"xmlns": "http://www.w3.org/2000/09/xmldsig#"},
+            "EncryptedKey": {
+                "^attributes^": {"xmlns": "http://www.w3.org/2001/04/xmlenc#"},
+                "EncryptionMethod": {
+                    "^attributes^": {"Algorithm": "http://www.w3.org/2001/04/xmlenc#rsa-1_5"},
+                },
+                "KeyInfo": {
+                    "^attributes^": {"xmlns": "http://www.w3.org/2000/09/xmldsig#"},
+                    "X509Data": NOTHING,
+                },
+                "CipherData": {"CipherValue": NOTHING},
+            },
+        },
+        "CipherData": {"CipherValue": NOTHING},
+    },
+};
+
+# Encrypt the data
+string encrypted_xml = XmlSec::encrypt("<SensitiveData>secret</SensitiveData>",
+    make_xml(enc_template), session_key, mgr);
+    @endcode
+
+    @par Example: Decrypt Encrypted XML
+    @code{.py}
+# Decrypt using the key manager (which contains the private key)
+data decrypted = XmlSec::decrypt(encrypted_xml, mgr);
+    @endcode
+
+    @section xmlsec_key_types Supported Key Types
+
+    The module supports the following key types through the @ref xmlsec_keydataid_constants:
+    - @ref Qore::XmlSec::xmlSecKeyDataAesId "xmlSecKeyDataAesId" - AES symmetric keys
+    - @ref Qore::XmlSec::xmlSecKeyDataDesId "xmlSecKeyDataDesId" - DES symmetric keys
+    - @ref Qore::XmlSec::xmlSecKeyDataDsaId "xmlSecKeyDataDsaId" - DSA keys
+    - @ref Qore::XmlSec::xmlSecKeyDataHmacId "xmlSecKeyDataHmacId" - HMAC keys
+    - @ref Qore::XmlSec::xmlSecKeyDataRsaId "xmlSecKeyDataRsaId" - RSA keys
+    - @ref Qore::XmlSec::xmlSecKeyDataX509Id "xmlSecKeyDataX509Id" - X.509 certificates
+
+    Keys can be loaded from various formats using @ref xmlsec_keydataformat_constants:
+    - @ref Qore::XmlSec::xmlSecKeyDataFormatPem "xmlSecKeyDataFormatPem" - PEM format
+    - @ref Qore::XmlSec::xmlSecKeyDataFormatDer "xmlSecKeyDataFormatDer" - DER format
+    - @ref Qore::XmlSec::xmlSecKeyDataFormatPkcs8Pem "xmlSecKeyDataFormatPkcs8Pem" - PKCS#8 PEM
+    - @ref Qore::XmlSec::xmlSecKeyDataFormatPkcs8Der "xmlSecKeyDataFormatPkcs8Der" - PKCS#8 DER
+    - @ref Qore::XmlSec::xmlSecKeyDataFormatPkcs12 "xmlSecKeyDataFormatPkcs12" - PKCS#12
+    - @ref Qore::XmlSec::xmlSecKeyDataFormatCertPem "xmlSecKeyDataFormatCertPem" - Certificate PEM
+    - @ref Qore::XmlSec::xmlSecKeyDataFormatCertDer "xmlSecKeyDataFormatCertDer" - Certificate DER
+
+    @section xmlsec_errors Error Handling
+
+    All methods throw exceptions on error. The following exception types may be raised:
+    - \c XMLSEC-SIGN-ERROR - Error during XML signing
+    - \c XMLSEC-VERIFY-ERROR - Signature verification failed
+    - \c XMLSEC-ENCRYPT-ERROR - Error during XML encryption
+    - \c XMLSEC-DECRYPT-ERROR - Error during XML decryption
+    - \c XMLSEC-DSIGCTX-ERROR - Digital signature context error
+    - \c XMLSECKEY-ERROR - Key-related error
+    - \c XMLSECKEYMANAGER-ERROR - Key manager error
+
     @section xmlsecreleasenotes Release Notes
+
+    @subsection xmlsec_v_1_0_1 xmlsec Module Version 1.0.1
+
+    <b>Bug Fixes:</b>
+    - Fixed memory leak in \c QoreXmlDoc::getString() where XML memory allocated by libxml2
+      was not being freed after copying to the Qore string
+      (<a href="https://github.com/qoretechnologies/qore/issues/5107">issue 5107</a>)
+    - Fixed \c XmlSecKey::getName() returning incorrect value due to xmlChar pointer cast issue
+    - Fixed typo in error message: "could node find node" corrected to "could not find node"
+    - Fixed syntax error (extra closing parenthesis) in \c XmlSecKey::setCertificate()
+    - Fixed potential null pointer dereference in \c DSigCtx::getTransformStatus()
+
+    <b>Thread Safety Improvements:</b>
+    - Added proper locking to \c XmlSecKey::clone() and \c XmlSecKey::copy() methods
+    - Added proper locking to \c XmlSecKeyManager::getKeyManager() method
+    - Added big_lock synchronization to \c DSigCtx::verify() for consistency with sign operations
+
+    <b>Build System Updates:</b>
+    - Updated GitLab CI to use modern k8s tag
+    - Fixed GitHub API calls to use correct organization and token-based authentication
+    - Updated spec file for CMake-based builds
+    - Updated README with CMake build instructions
+
+    <b>Documentation:</b>
+    - Added comprehensive usage examples for signing, verification, encryption, and decryption
+    - Added documentation for supported key types and formats
+    - Added error handling documentation
+    - Updated all documentation to reflect current version
+
+    <b>Test Suite:</b>
+    - Added comprehensive negative tests for error conditions
+    - Added tests for key operations (copy, getName, setName, getType, getSize)
+    - Added tests for various key formats
+    - Added tests for binary encryption/decryption
+    - Added tests for certificate loading methods
+    - Added tests for tampered signature detection
+    - Added tests for wrong key verification failures
+    - Updated test certificates (regenerated with 2048-bit RSA keys)
+    - Updated signature templates to use SHA256 instead of deprecated SHA1
 
     @subsection xmlsec_v_1_0_0 xmlsec Module Version 1.0.0
 

@@ -59,7 +59,10 @@ public:
         int size;
 
         xmlDocDumpMemory(doc, &p, &size);
-        return new QoreStringNode((char *)p, (qore_size_t)size, (qore_size_t)size + 1, QCS_UTF8);
+        // copy the string and free the xmlsec-allocated memory
+        QoreStringNode* rv = new QoreStringNode((const char*)p, (qore_size_t)size, QCS_UTF8);
+        xmlFree(p);
+        return rv;
     }
 };
 

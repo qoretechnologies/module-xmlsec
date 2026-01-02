@@ -128,7 +128,7 @@ static xmlNodePtr q_xmlsec_find_node(ExceptionSink* xsink, QoreXmlDoc& doc, unsi
             while (node) {
                 if (xmlSecAppAddIDAttr(node, (const xmlChar*)attr.c_str(), (const xmlChar*)node_name,
                     (const xmlChar*)ns_href) < 0) {
-                    xsink->raiseException("XMLSEC-VERIFY-ERROR", "could node find node '%s' with attribute '%s'",
+                    xsink->raiseException("XMLSEC-VERIFY-ERROR", "could not find node '%s' with attribute '%s'",
                         str->c_str() + e + 1, attr.c_str());
                     return nullptr;
                 }

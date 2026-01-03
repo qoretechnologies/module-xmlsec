@@ -1,10 +1,14 @@
 #!/usr/bin/env qore
 
-# requires the xmlsec module
-%requires xmlsec
+# try loading the xml module
+%try-module xml
+%define NoXml
+%endtry
 
-# requires the xml module
-%requires xml
+# try loading the xmlsec module
+%try-module xmlsec
+%define NoXmlSec
+%endtry
 
 # requires QUnit
 %requires QUnit
@@ -45,10 +49,10 @@ const EncHash = (
                 "^attributes^": ( "xmlns": "http://www.w3.org/2000/09/xmldsig#" ),
                 "EncryptedKey": ( "^attributes^": ( "xmlns": "http://www.w3.org/2001/04/xmlenc#" ),
                 "EncryptionMethod": (
-                    "^attributes^": ( "Algorithm": "http://www.w3.org/2001/04/xmlenc#rsa-1_5") ),
+                    "^attributes^": ( "Algorithm": "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p") ),
                     "KeyInfo": (
                         "^attributes^": ( "xmlns": "http://www.w3.org/2000/09/xmldsig#" ),
-                        "X509Data": NOTHING,
+                        "KeyName": "cert-key",
                     ),
                     "CipherData": ( "CipherValue": NOTHING ),
                 ),
@@ -70,10 +74,10 @@ const BinaryEncHash = (
             "^attributes^": ( "xmlns": "http://www.w3.org/2000/09/xmldsig#" ),
             "EncryptedKey": ( "^attributes^": ( "xmlns": "http://www.w3.org/2001/04/xmlenc#" ),
             "EncryptionMethod": (
-                "^attributes^": ( "Algorithm": "http://www.w3.org/2001/04/xmlenc#rsa-1_5") ),
+                "^attributes^": ( "Algorithm": "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p") ),
                 "KeyInfo": (
                     "^attributes^": ( "xmlns": "http://www.w3.org/2000/09/xmldsig#" ),
-                    "X509Data": NOTHING,
+                    "KeyName": "cert-key",
                 ),
                 "CipherData": ( "CipherValue": NOTHING ),
             ),
@@ -108,6 +112,14 @@ class XmlSecTest inherits Test {
     }
 
     constructor() : Test("XmlSecTest", "1.0", \ARGV, MyOpts) {
+%ifdef NoXml
+        printf("xml module not available; skipping tests\n");
+%endif
+%ifdef NoXmlSec
+        printf("xmlsec module not available; skipping tests\n");
+%endif
+%ifndef NoXml
+%ifndef NoXmlSec
         addTestCase("basic sign/verify/encrypt/decrypt", \testBasicOperations());
         addTestCase("key operations", \testKeyOperations());
         addTestCase("key manager operations", \testKeyManagerOperations());
@@ -118,6 +130,8 @@ class XmlSecTest inherits Test {
         addTestCase("negative tests - key creation", \testNegativeKeyCreation());
         addTestCase("binary encryption/decryption", \testBinaryEncryption());
         addTestCase("multithreaded operations", \testMultithreaded());
+%endif
+%endif
 
         set_return_value(main());
 
@@ -146,6 +160,7 @@ class XmlSecTest inherits Test {
         # set up encryption key for certificate
         cert_key = new XmlSecKey(key_data, xmlSecKeyDataFormatPem, m_options.password);
         cert_key.setCertificate(cert_data, xmlSecKeyDataFormatCertPem);
+        cert_key.setName("cert-key");
 
         # set up key manager
         mgr = new XmlSecKeyManager();
@@ -310,10 +325,10 @@ class XmlSecTest inherits Test {
         signKey.setCertificate(cert_data, xmlSecKeyDataFormatCertPem);
         string signed_str = XmlSec::sign(template, signKey);
 
+        # Use loadCertFromMemory with trusted type for signature verification
+        # This is the recommended approach for verifying signatures with X509Data
         XmlSecKeyManager km4();
-        XmlSecKey verifyKey(key_data, xmlSecKeyDataFormatPem, m_options.password);
-        verifyKey.setCertificate(cert_data, xmlSecKeyDataFormatCertPem);
-        km4.addKey(verifyKey);
+        km4.loadCertFromMemory(cert_data, xmlSecKeyDataFormatCertPem, xmlSecKeyDataTypeTrusted);
         assertNothing(XmlSec::verify(signed_str, km4));
         assertNothing(km4.verify(signed_str));
     }

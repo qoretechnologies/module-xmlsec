@@ -1,6 +1,7 @@
 *~
 *.lo
 *.la
+build/
 src/.deps/
 src/.libs/
 src/*.dox.h

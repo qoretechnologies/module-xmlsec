@@ -28,22 +28,24 @@
 
 #include <map>
 
-QoreStringNode* xmlsec_module_init();
-void xmlsec_module_ns_init(QoreNamespace *rns, QoreNamespace *qns);
-void xmlsec_module_delete();
+static void xmlsec_module_init(QoreModuleInitContext& ctx, ExceptionSink& xsink);
+static void xmlsec_module_ns_init(QoreNamespace* rns, QoreNamespace* qns, ExceptionSink& xsink);
+static void xmlsec_module_delete();
 
-// qore module symbols
-DLLEXPORT char qore_module_name[] = "xmlsec";
-DLLEXPORT char qore_module_version[] = PACKAGE_VERSION;
-DLLEXPORT char qore_module_description[] = "xmlsec module";
-DLLEXPORT char qore_module_author[] = "David Nichols";
-DLLEXPORT char qore_module_url[] = "http://qoretechnologies.com/qore";
-DLLEXPORT int qore_module_api_major = QORE_MODULE_API_MAJOR;
-DLLEXPORT int qore_module_api_minor = QORE_MODULE_API_MINOR;
-DLLEXPORT qore_module_init_t qore_module_init = xmlsec_module_init;
-DLLEXPORT qore_module_ns_init_t qore_module_ns_init = xmlsec_module_ns_init;
-DLLEXPORT qore_module_delete_t qore_module_delete = xmlsec_module_delete;
-DLLEXPORT qore_license_t qore_module_license = QL_LGPL;
+extern "C" DLLEXPORT void xmlsec_qore_module_desc(QoreModuleInfo& mod_info) {
+    mod_info.name = "xmlsec";
+    mod_info.version = PACKAGE_VERSION;
+    mod_info.desc = "xmlsec module";
+    mod_info.author = "David Nichols";
+    mod_info.url = "http://qoretechnologies.com/qore";
+    mod_info.api_major = QORE_MODULE_API_MAJOR;
+    mod_info.api_minor = QORE_MODULE_API_MINOR;
+    mod_info.init = xmlsec_module_init;
+    mod_info.ns_init = xmlsec_module_ns_init;
+    mod_info.del = xmlsec_module_delete;
+    mod_info.license = QL_LGPL;
+    mod_info.license_str = "LGPL";
+}
 
 typedef std::map<int, xmlSecKeyDataId> key_data_map_t;
 static key_data_map_t key_data_map = {
@@ -80,7 +82,7 @@ static void qore_xmlSecErrorsCallback(const char *file, int line, const char *fu
 DLLLOCAL void preinitXmlSecKeyClass();
 DLLLOCAL void preinitXmlSecKeyManagerClass();
 
-QoreStringNode* xmlsec_module_init() {
+static void xmlsec_module_init(QoreModuleInitContext& ctx, ExceptionSink& xsink) {
     xmlLoadExtDtdDefaultValue = XML_DETECT_IDS | XML_COMPLETE_ATTRS;
     xmlSubstituteEntitiesDefault(1);
 #ifndef XMLSEC_NO_XSLT
@@ -88,12 +90,16 @@ QoreStringNode* xmlsec_module_init() {
 #endif // XMLSEC_NO_XSLT
 
     // Init xmlsec library
-    if (xmlSecInit() < 0)
-        return new QoreStringNode("xmlsec initialization failed");
+    if (xmlSecInit() < 0) {
+        xsink.raiseException("MODULE-INIT-ERROR", "xmlsec initialization failed");
+        return;
+    }
 
     // Check loaded library version
-    if (xmlSecCheckVersion() != 1)
-        return new QoreStringNode("xmlsec library version is not compatible");
+    if (xmlSecCheckVersion() != 1) {
+        xsink.raiseException("MODULE-INIT-ERROR", "xmlsec library version is not compatible");
+        return;
+    }
 
     /* Load default crypto engine if we are supporting dynamic
      * loading for xmlsec-crypto libraries. Use the crypto library
@@ -103,8 +109,7 @@ QoreStringNode* xmlsec_module_init() {
 
 #ifdef XMLSEC_CRYPTO_DYNAMIC_LOADING
     if (xmlSecCryptoDLLoadLibrary(BAD_CAST XMLSEC_CRYPTO) < 0) {
-        QoreStringNode *str = new QoreStringNode();
-        str->sprintf("unable to load default xmlsec-crypto library. Make sure you have it installed and check your shared library path (%s) environment variable",
+        xsink.raiseException("MODULE-INIT-ERROR", "unable to load default xmlsec-crypto library. Make sure you have it installed and check your shared library path (%s) environment variable",
 #if defined(DARWIN)
             "DYLD_LIBRARY_PATH"
 #elif defined(HPUX_PARISC)
@@ -113,18 +118,20 @@ QoreStringNode* xmlsec_module_init() {
             "LD_LIBRARY_PATH"
 #endif
         );
-        return str;
+        return;
     }
 #endif // XMLSEC_CRYPTO_DYNAMIC_LOADING
 
     // Init crypto library
     if (xmlSecCryptoAppInit(NULL) < 0) {
-        return new QoreStringNode("crypto initialization failed");
+        xsink.raiseException("MODULE-INIT-ERROR", "crypto initialization failed");
+        return;
     }
 
     // Init xmlsec-crypto library
     if (xmlSecCryptoInit() < 0) {
-        return new QoreStringNode("xmlsec-crypto initialization failed");
+        xsink.raiseException("MODULE-INIT-ERROR", "xmlsec-crypto initialization failed");
+        return;
     }
 
     // set error callback function
@@ -138,10 +145,9 @@ QoreStringNode* xmlsec_module_init() {
     XmlSec_NS.addSystemClass(initXmlSecKeyClass(XmlSec_NS));
     XmlSec_NS.addSystemClass(initXmlSecKeyManagerClass(XmlSec_NS));
 
-    return nullptr;
 }
 
-void xmlsec_module_ns_init(QoreNamespace* rns, QoreNamespace* qns) {
+static void xmlsec_module_ns_init(QoreNamespace* rns, QoreNamespace* qns, ExceptionSink& xsink) {
     qns->addNamespace(XmlSec_NS.copy());
 }
 

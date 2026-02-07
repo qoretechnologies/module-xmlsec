@@ -16,13 +16,7 @@
 # execute the XmlSecTest class as the application class
 %exec-class XmlSecTest
 
-# require all variables to be declared before use
-%require-our
-
-# enable all warnings
-%enable-all-warnings
-
-%new-style
+%modern
 
 # option defaults
 const Defaults = {
@@ -175,7 +169,7 @@ class XmlSecTest inherits Test {
     }
 
     # returns the signature template XML string created from some example parameters
-    string getSignatureTemplate(ver, body) {
+    string getSignatureTemplate(string ver, string body) {
         # this template uses several transformations including an XPath specification
         # to sign the e:Body and e:SenderDetails parts of the tree
         hash<auto> h = (

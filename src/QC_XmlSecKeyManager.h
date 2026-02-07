@@ -3,7 +3,7 @@
 
     Qore Programming Language
 
-    Copyright 2003 - 2021 Qore Technologies, s.r.o.
+    Copyright 2003 - 2026 Qore Technologies, s.r.o.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -69,6 +69,12 @@ public:
     //! loads a certificate from a file and marks it according to the arguments
     DLLLOCAL int loadCertFromPath(ExceptionSink* xsink, const char* filename, xmlSecKeyDataFormat format,
             xmlSecKeyDataType type) {
+        // check filesystem sandbox access before loading certificate from file
+        QoreSandboxManager* sm = runtime_get_sandbox_manager();
+        if (sm && !sm->checkFilesystemAccess(filename, QSEC_READ, xsink)) {
+            return -1;
+        }
+
         AutoLocker al(this);
 
         if (xmlSecCryptoAppKeysMngrCertLoad(keyMgr, filename, format, type)) {

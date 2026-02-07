@@ -2,6 +2,7 @@
 //#include <config.h>
 
 #include <qore/Qore.h>
+#include <qore/QoreSandboxManager.h>
 
 #include <libxml/tree.h>
 #include <libxml/xmlmemory.h>

@@ -351,9 +351,6 @@ string xml = XmlSec::encrypt(str, encryption_template, key);
     @throw XMLSEC-ENCRYPT-ERROR error in arguments to the methods; encryption failed, libxmlsec error
 */
 static string XmlSec::encrypt(string str_data, string tmpl, XmlSecKey[QoreXmlSecKey] key, *XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) {
-    SimpleRefHolder<QoreXmlSecKey> holder(key);
-    SimpleRefHolder<QoreXmlSecKeyManager> mgr_holder(key_manager);
-
     TempEncodingHelper template_utf8(tmpl, QCS_UTF8, xsink);
     if (!template_utf8) {
         return QoreValue();
@@ -426,9 +423,6 @@ string xml = XmlSec::encrypt(str, encryption_template, key);
     @throw XMLSEC-ENCRYPT-ERROR error in arguments to the methods; encryption failed, libxmlsec error
 */
 static string XmlSec::encrypt(binary bin_data, string tmpl, XmlSecKey[QoreXmlSecKey] key, *XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) {
-    SimpleRefHolder<QoreXmlSecKey> holder(key);
-    SimpleRefHolder<QoreXmlSecKeyManager> mgr_holder(key_manager);
-
     TempEncodingHelper template_utf8(tmpl, QCS_UTF8, xsink);
     if (!template_utf8) {
         return QoreValue();
@@ -482,8 +476,6 @@ data d = XmlSec::decrypt(xml, key);
     @throw XMLSEC-DECRYPT-ERROR decryption failed, libxmlsec error
 */
 static data XmlSec::decrypt(string xml, XmlSecKey[QoreXmlSecKey] key) [flags=RET_VALUE_ONLY] {
-    SimpleRefHolder<QoreXmlSecKey> holder(key);
-
     TempEncodingHelper xml_utf8(xml, QCS_UTF8, xsink);
     if (!xml_utf8) {
         return QoreValue();
@@ -537,8 +529,6 @@ data d = XmlSec::decrypt(xml, key_manager);
     @throw XMLSEC-DECRYPT-ERROR decryption failed, libxmlsec error
 */
 static data XmlSec::decrypt(string xml, XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) [flags=RET_VALUE_ONLY] {
-    SimpleRefHolder<QoreXmlSecKeyManager> mgr_holder(key_manager);
-
     TempEncodingHelper xml_utf8(xml, QCS_UTF8, xsink);
     if (!xml_utf8) {
         return QoreValue();
@@ -589,8 +579,6 @@ string xml = XmlSec::sign(template_string, key);
     @throw XMLSEC-DSIGCTX-ERROR error producing the signed XML string
 */
 static string XmlSec::sign(string tmpl, XmlSecKey[QoreXmlSecKey] key) [flags=RET_VALUE_ONLY] {
-    SimpleRefHolder<QoreXmlSecKey> holder(key);
-
     TempEncodingHelper template_utf8(tmpl, QCS_UTF8, xsink);
     if (!template_utf8) {
         return QoreValue();
@@ -646,9 +634,7 @@ XmlSec::verify(signed_string, key);
     @throw XMLSEC-DSIGCTX-ERROR: signature verification could not be processed by libxmlse
 */
 static nothing XmlSec::verify(string signed_string, XmlSecKey[QoreXmlSecKey] key, ...) {
-    SimpleRefHolder<QoreXmlSecKey> holder(key);
-
-    q_xmlsec_verify(xsink, signed_string, key, 2, args);
+    q_xmlsec_verify(xsink, signed_string, *key, 2, args);
 }
 
 //! Verifies the signature of the signed XML string passed as the first argument with the given key manager
@@ -666,7 +652,5 @@ XmlSec::verify(signed_string, mgr);
     @throw XMLSEC-DSIGCTX-ERROR: signature verification could not be processed by libxmlse
 */
 static nothing XmlSec::verify(string signed_string, XmlSecKeyManager[QoreXmlSecKeyManager] mgr, ...) {
-    SimpleRefHolder<QoreXmlSecKeyManager> holder(mgr);
-
-    q_xmlsec_verify(xsink, signed_string, mgr, 2, args);
+    q_xmlsec_verify(xsink, signed_string, *mgr, 2, args);
 }

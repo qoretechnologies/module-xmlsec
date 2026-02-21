@@ -68,8 +68,6 @@ mgr.addKey(key);
     @throw XMLSECKEYMANAGER-ERROR error reported by libxmlsec assigning the key to the key manager
 */
 XmlSecKeyManager::addKey(XmlSecKey[QoreXmlSecKey] key) {
-    SimpleRefHolder<QoreXmlSecKey> holder(key);
-
     xmlSecKeyPtr new_key = key->clone(xsink);
     if (!new_key) {
         assert(*xsink);

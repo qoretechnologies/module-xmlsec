@@ -337,10 +337,10 @@ XmlSec::constructor() {
 string xml = XmlSec::encrypt(str, encryption_template, key);
     @endcode
 
-    @param str_data the string data to encrypt
-    @param tmpl the XML template for encrypting the data
+    @param xml_data the string data to encrypt
+    @param xml_template the XML template for encrypting the data
     @param key the key to use to encrypt the data
-    @param manager the optional key manager to use for encryption
+    @param key_manager the optional key manager to use for encryption
 
     @return the XML string with the encrypted data
 
@@ -350,8 +350,8 @@ string xml = XmlSec::encrypt(str, encryption_template, key);
 
     @throw XMLSEC-ENCRYPT-ERROR error in arguments to the methods; encryption failed, libxmlsec error
 */
-static string XmlSec::encrypt(string str_data, string tmpl, XmlSecKey[QoreXmlSecKey] key, *XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) {
-    TempEncodingHelper template_utf8(tmpl, QCS_UTF8, xsink);
+static string XmlSec::encrypt(string xml_data, string xml_template, XmlSecKey[QoreXmlSecKey] key, *XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) [flags=NAMED_ARGS] {
+    TempEncodingHelper template_utf8(xml_template, QCS_UTF8, xsink);
     if (!template_utf8) {
         return QoreValue();
     }
@@ -384,7 +384,7 @@ static string XmlSec::encrypt(string str_data, string tmpl, XmlSecKey[QoreXmlSec
     encCtx.setKey(new_key);
 
     // do XML encryption
-    TempEncodingHelper edoc_utf8(str_data, QCS_UTF8, xsink);
+    TempEncodingHelper edoc_utf8(xml_data, QCS_UTF8, xsink);
     if (!edoc_utf8) {
         return QoreValue();
     }
@@ -409,10 +409,10 @@ static string XmlSec::encrypt(string str_data, string tmpl, XmlSecKey[QoreXmlSec
 string xml = XmlSec::encrypt(str, encryption_template, key);
     @endcode
 
-    @param bin_data the data to encrypt
-    @param tmpl the XML template for encrypting the data
+    @param binary_data the data to encrypt
+    @param xml_template the XML template for encrypting the data
     @param key the key to use to encrypt the data
-    @param manager the optional key manager to use for encryption
+    @param key_manager the optional key manager to use for encryption
 
     @return the XML string with the encrypted data
 
@@ -422,8 +422,8 @@ string xml = XmlSec::encrypt(str, encryption_template, key);
 
     @throw XMLSEC-ENCRYPT-ERROR error in arguments to the methods; encryption failed, libxmlsec error
 */
-static string XmlSec::encrypt(binary bin_data, string tmpl, XmlSecKey[QoreXmlSecKey] key, *XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) {
-    TempEncodingHelper template_utf8(tmpl, QCS_UTF8, xsink);
+static string XmlSec::encrypt(binary binary_data, string xml_template, XmlSecKey[QoreXmlSecKey] key, *XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) [flags=NAMED_ARGS] {
+    TempEncodingHelper template_utf8(xml_template, QCS_UTF8, xsink);
     if (!template_utf8) {
         return QoreValue();
     }
@@ -455,7 +455,7 @@ static string XmlSec::encrypt(binary bin_data, string tmpl, XmlSecKey[QoreXmlSec
 
     encCtx.setKey(new_key);
 
-    if (encCtx.encryptBinary(node, bin_data)) {
+    if (encCtx.encryptBinary(node, binary_data)) {
         xsink->raiseException("XMLSEC-ENCRYPT-ERROR", "encryption failed");
         return QoreValue();
     }
@@ -475,7 +475,7 @@ data d = XmlSec::decrypt(xml, key);
 
     @throw XMLSEC-DECRYPT-ERROR decryption failed, libxmlsec error
 */
-static data XmlSec::decrypt(string xml, XmlSecKey[QoreXmlSecKey] key) [flags=RET_VALUE_ONLY] {
+static data XmlSec::decrypt(string xml, XmlSecKey[QoreXmlSecKey] key) [flags=RET_VALUE_ONLY,NAMED_ARGS] {
     TempEncodingHelper xml_utf8(xml, QCS_UTF8, xsink);
     if (!xml_utf8) {
         return QoreValue();
@@ -528,7 +528,7 @@ data d = XmlSec::decrypt(xml, key_manager);
 
     @throw XMLSEC-DECRYPT-ERROR decryption failed, libxmlsec error
 */
-static data XmlSec::decrypt(string xml, XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) [flags=RET_VALUE_ONLY] {
+static data XmlSec::decrypt(string xml, XmlSecKeyManager[QoreXmlSecKeyManager] key_manager) [flags=RET_VALUE_ONLY,NAMED_ARGS] {
     TempEncodingHelper xml_utf8(xml, QCS_UTF8, xsink);
     if (!xml_utf8) {
         return QoreValue();
@@ -568,7 +568,7 @@ static data XmlSec::decrypt(string xml, XmlSecKeyManager[QoreXmlSecKeyManager] k
 string xml = XmlSec::sign(template_string, key);
     @endcode
 
-    @param tmpl the XML template
+    @param xml_template the XML template
     @param key the key to use to sign the string
 
     @return the signed XML string
@@ -578,8 +578,8 @@ string xml = XmlSec::sign(template_string, key);
     @throw XMLSEC-SIGN-ERROR error in arguments to the methods; libxmlsec error
     @throw XMLSEC-DSIGCTX-ERROR error producing the signed XML string
 */
-static string XmlSec::sign(string tmpl, XmlSecKey[QoreXmlSecKey] key) [flags=RET_VALUE_ONLY] {
-    TempEncodingHelper template_utf8(tmpl, QCS_UTF8, xsink);
+static string XmlSec::sign(string xml_template, XmlSecKey[QoreXmlSecKey] key) [flags=RET_VALUE_ONLY,NAMED_ARGS] {
+    TempEncodingHelper template_utf8(xml_template, QCS_UTF8, xsink);
     if (!template_utf8) {
         return QoreValue();
     }

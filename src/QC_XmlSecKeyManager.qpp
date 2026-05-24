@@ -67,7 +67,7 @@ mgr.addKey(key);
 
     @throw XMLSECKEYMANAGER-ERROR error reported by libxmlsec assigning the key to the key manager
 */
-XmlSecKeyManager::addKey(XmlSecKey[QoreXmlSecKey] key) {
+XmlSecKeyManager::addKey(XmlSecKey[QoreXmlSecKey] key) [flags=NAMED_ARGS] {
     xmlSecKeyPtr new_key = key->clone(xsink);
     if (!new_key) {
         assert(*xsink);
@@ -87,15 +87,16 @@ mgr.loadCertFromPath(path, xmlSecKeyDataFormatCertPem, xmlSecKeyDataTypeTrusted)
     @endcode
 
     @param path the path to the certificate on the filesystem
-    @param format the format of the file data (for possible values, see @ref xmlsec_keydataformat_constants for
+    @param certificate_format the format of the file data (for possible values, see @ref xmlsec_keydataformat_constants for
     possible values)
-    @param type the certificate type; see @ref xmlsec_keydatatype_constants for possible values
+    @param certificate_type the certificate type; see @ref xmlsec_keydatatype_constants for possible values
 
     @throw XMLSECKEYMANAGER-ERROR error reported by libxmlsec loading the certificate or assigning the certificate to
     the key manager
 */
-XmlSecKeyManager::loadCertFromPath(string path, int format, int type) [dom=FILESYSTEM] {
-    mgr->loadCertFromPath(xsink, path->c_str(), (xmlSecKeyDataFormat)format, (xmlSecKeyDataType)type);
+XmlSecKeyManager::loadCertFromPath(string path, int certificate_format, int certificate_type) [dom=FILESYSTEM;flags=NAMED_ARGS] {
+    mgr->loadCertFromPath(xsink, path->c_str(), (xmlSecKeyDataFormat)certificate_format,
+        (xmlSecKeyDataType)certificate_type);
 }
 
 //! adds certificate to the \c XmlSecKeyManager object and marks it according tot the arguments
@@ -104,20 +105,20 @@ XmlSecKeyManager::loadCertFromPath(string path, int format, int type) [dom=FILES
 mgr.loadCertFromMemory(cert_data, xmlSecKeyDataFormatCertPem, xmlSecKeyDataTypeTrusted);
     @endcode
 
-    @param cert_data the certificate data
-    @param format the format of the file data (for possible values, see @ref xmlsec_keydataformat_constants for
+    @param certificate_data the certificate data
+    @param certificate_format the format of the file data (for possible values, see @ref xmlsec_keydataformat_constants for
     possible values)
-    @param type the certificate type; see @ref xmlsec_keydatatype_constants for possible values
+    @param certificate_type the certificate type; see @ref xmlsec_keydatatype_constants for possible values
 
     @throw XMLSECKEYMANAGER-ERROR error reported by libxmlsec loading the certificate or assigning the certificate to
     the key manager
 */
-XmlSecKeyManager::loadCertFromMemory(data cert_data, int format, int type) {
+XmlSecKeyManager::loadCertFromMemory(data certificate_data, int certificate_format, int certificate_type) [flags=NAMED_ARGS] {
     const char* bin_ptr;
     size_t bin_len;
-    q_get_data(cert_data, bin_ptr, bin_len);
-    mgr->loadCertFromMemory(xsink, (const xmlSecByte*)bin_ptr, (xmlSecSize)bin_len, (xmlSecKeyDataFormat)format,
-        (xmlSecKeyDataType)type);
+    q_get_data(certificate_data, bin_ptr, bin_len);
+    mgr->loadCertFromMemory(xsink, (const xmlSecByte*)bin_ptr, (xmlSecSize)bin_len,
+        (xmlSecKeyDataFormat)certificate_format, (xmlSecKeyDataType)certificate_type);
 }
 
 //! Verifies the signature of the signed XML string passed

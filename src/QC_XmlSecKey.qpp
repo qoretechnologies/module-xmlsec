@@ -38,21 +38,21 @@ qclass XmlSecKey [arg=QoreXmlSecKey* key; ns=Qore::XmlSec];
 XmlSec key(key_pem, xmlSecKeyDataFormatPem, password);
     @endcode
 
-    @param key the key in PEM or DER format
-    @param format the format of the key (for possible values, see @ref xmlsec_keydataformat_constants for possible values)
+    @param key_data the key in PEM or DER format
+    @param key_format the format of the key (for possible values, see @ref xmlsec_keydataformat_constants for possible values)
     @param password the optional password for the key
 
     Creates a new key based on key data (for example, in PEM or DER format), the second argument will normally be xmlSecKeyDataFormatPem or xmlSecKeyDataFormatDer.
 
     The password argument is required for private keys with a password.
 */
-XmlSecKey::constructor(data key, int format, *string password) {
+XmlSecKey::constructor(data key_data, int key_format, *string password) [flags=NAMED_ARGS] {
     const char* ptr;
     size_t len;
-    q_get_data(key, ptr, len);
+    q_get_data(key_data, ptr, len);
 
     SimpleRefHolder<QoreXmlSecKey> newkey(new QoreXmlSecKey(xsink, (xmlSecByte*)ptr, len,
-        (xmlSecKeyDataFormat)format, password ? password->c_str() : nullptr));
+        (xmlSecKeyDataFormat)key_format, password ? password->c_str() : nullptr));
     if (*xsink)
         return;
     self->setPrivate(CID_XMLSECKEY, newkey.release());
@@ -61,17 +61,18 @@ XmlSecKey::constructor(data key, int format, *string password) {
 //! Creates a new \c XmlSecKey based on the arguments passed.
 /** @par Example:
     @code{.py}
-XmlSec key(str, num_bits, type);
+XmlSec key(key_name, num_bits, key_type);
     @endcode
 
-    @param key the key in PEM or DER format
+    @param key_name the key data name
     @param num_bits the number of bits
-    @param type the key type; see @ref xmlsec_keydatatype_constants for possible values
+    @param key_type the key type; see @ref xmlsec_keydatatype_constants for possible values
 
     Creates a new key based on key data (for example, in PEM or DER format), the second argument will normally be xmlSecKeyDataFormatPem or xmlSecKeyDataFormatDer.
 */
-XmlSecKey::constructor(string str, int num_bits, int type) {
-    SimpleRefHolder<QoreXmlSecKey> key(new QoreXmlSecKey((const xmlChar*)str->c_str(), num_bits, (xmlSecKeyDataType)type, xsink));
+XmlSecKey::constructor(string key_name, int num_bits, int key_type) [flags=NAMED_ARGS] {
+    SimpleRefHolder<QoreXmlSecKey> key(new QoreXmlSecKey((const xmlChar*)key_name->c_str(), num_bits,
+        (xmlSecKeyDataType)key_type, xsink));
     if (*xsink)
         return;
 
@@ -81,23 +82,23 @@ XmlSecKey::constructor(string str, int num_bits, int type) {
 //! Creates a new \c XmlSecKey based on the arguments passed.
 /** @par Example:
     @code{.py}
-XmlSec key(int id, num_bits, type);
+XmlSec key(key_id, num_bits, key_type);
     @endcode
 
-    @param id an integer constant giving the key ID; see @ref xmlsec_keydataid_constants for possible values
+    @param key_id an integer constant giving the key ID; see @ref xmlsec_keydataid_constants for possible values
     @param num_bits the number of bits
-    @param type the key type; see @ref xmlsec_keydatatype_constants for possible values
+    @param key_type the key type; see @ref xmlsec_keydatatype_constants for possible values
 
     @throw XMLSECKEY-KEYID-ERROR invalid key ID given
 */
-XmlSecKey::constructor(int id, int num_bits, int type) {
-    xmlSecKeyDataId keyid = xmlsec_get_keydata_id(id);
+XmlSecKey::constructor(int key_id, int num_bits, int key_type) [flags=NAMED_ARGS] {
+    xmlSecKeyDataId keyid = xmlsec_get_keydata_id(key_id);
     if (!keyid) {
-        xsink->raiseException("XMLSECKEY-KEYID-ERROR", "invalid key ID %d given", id);
+        xsink->raiseException("XMLSECKEY-KEYID-ERROR", "invalid key ID %d given", key_id);
         return;
     }
 
-    SimpleRefHolder<QoreXmlSecKey> key(new QoreXmlSecKey(keyid, num_bits, (xmlSecKeyDataType)type, xsink));
+    SimpleRefHolder<QoreXmlSecKey> key(new QoreXmlSecKey(keyid, num_bits, (xmlSecKeyDataType)key_type, xsink));
     if (*xsink) {
         return;
     }
@@ -127,15 +128,15 @@ XmlSecKey::copy() {
 key.setCertificate(cert_pem, xmlSecKeyDataFormatCertPem);
     @endcode
 
-    @param cert the certificate in PEM or DER format
-    @param format the format of the key (for possible values, see @ref xmlsec_keydataformat_constants for possible values)
+    @param certificate_data the certificate in PEM or DER format
+    @param certificate_format the format of the certificate (for possible values, see @ref xmlsec_keydataformat_constants for possible values)
 */
-nothing XmlSecKey::setCertificate(data cert, int format) {
+nothing XmlSecKey::setCertificate(data certificate_data, int certificate_format) [flags=NAMED_ARGS] {
     const char* ptr;
     size_t len;
-    q_get_data(cert, ptr, len);
+    q_get_data(certificate_data, ptr, len);
 
-    key->setCertificate((xmlSecByte*)ptr, len, (xmlSecKeyDataFormat)format, xsink);
+    key->setCertificate((xmlSecByte*)ptr, len, (xmlSecKeyDataFormat)certificate_format, xsink);
 }
 
 //! Assigns an X.509 certificate to the \c XmlSecKey object
@@ -144,10 +145,10 @@ nothing XmlSecKey::setCertificate(data cert, int format) {
 key.setCertificate(cert);
     @endcode
 
-    @param cert X.509 certificate to set
+    @param certificate X.509 certificate to set
 */
-nothing XmlSecKey::setCertificate(SSLCertificate[QoreSSLCertificate] cert) {
-    SimpleRefHolder<QoreStringNode> cert_pem(cert->getPEM(xsink));
+nothing XmlSecKey::setCertificate(SSLCertificate[QoreSSLCertificate] certificate) [flags=NAMED_ARGS] {
+    SimpleRefHolder<QoreStringNode> cert_pem(certificate->getPEM(xsink));
     if (*xsink)
         return QoreValue();
 
@@ -162,7 +163,7 @@ key.setName(name);
 
     @throw XMLSECKEY-ERROR error reported by libxmlsec setting the name
 */
-nothing XmlSecKey::setName(string name) {
+nothing XmlSecKey::setName(string name) [flags=NAMED_ARGS] {
     key->setName(name->c_str(), xsink);
 }
 

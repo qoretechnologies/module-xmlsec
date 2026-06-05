@@ -117,6 +117,7 @@ class XmlSecTest inherits Test {
         addTestCase("basic sign/verify/encrypt/decrypt", \testBasicOperations());
         addTestCase("key operations", \testKeyOperations());
         addTestCase("key manager operations", \testKeyManagerOperations());
+        addTestCase("named argument calls", \testNamedArgumentCalls());
         addTestCase("negative tests - signing", \testNegativeSigning());
         addTestCase("negative tests - verification", \testNegativeVerification());
         addTestCase("negative tests - encryption", \testNegativeEncryption());
@@ -325,6 +326,56 @@ class XmlSecTest inherits Test {
         km4.loadCertFromMemory(cert_data, xmlSecKeyDataFormatCertPem, xmlSecKeyDataTypeTrusted);
         assertNothing(XmlSec::verify(signed_str, km4));
         assertNothing(km4.verify(signed_str));
+    }
+
+    testNamedArgumentCalls() {
+        data private_key_data = key_data;
+        data certificate_data = cert_data;
+        string password = m_options.password;
+        string certificate_path = m_options.certificate;
+
+        XmlSecKey named_key(key_data: private_key_data, key_format: xmlSecKeyDataFormatPem, password: password);
+        assertTrue(named_key instanceof XmlSecKey);
+        named_key.setCertificate(certificate_data: certificate_data, certificate_format: xmlSecKeyDataFormatCertPem);
+        named_key.setName(name: "cert-key");
+        assertEq("cert-key", named_key.getName());
+
+        SSLCertificate certificate(cert_data);
+        XmlSecKey certificate_key(key_data: private_key_data, key_format: xmlSecKeyDataFormatPem, password: password);
+        certificate_key.setCertificate(certificate: certificate);
+
+        XmlSecKey named_session_key(key_id: xmlSecKeyDataAesId, num_bits: 256, key_type: xmlSecKeyDataTypeSession);
+        assertEq(256, named_session_key.getSize());
+
+        XmlSecKey named_key_by_name(key_name: "aes", num_bits: 128, key_type: xmlSecKeyDataTypeSession);
+        assertEq(128, named_key_by_name.getSize());
+
+        XmlSecKeyManager km();
+        km.addKey(key: named_key);
+        XmlSecKeyManager cert_mgr();
+        cert_mgr.loadCertFromMemory(certificate_data: certificate_data, certificate_format: xmlSecKeyDataFormatCertPem,
+            certificate_type: xmlSecKeyDataTypeTrusted);
+        XmlSecKeyManager path_mgr();
+        path_mgr.loadCertFromPath(path: certificate_path, certificate_format: xmlSecKeyDataFormatCertPem,
+            certificate_type: xmlSecKeyDataTypeTrusted);
+
+        string template = getSignatureTemplate("1.0", "named argument test");
+        string signed = XmlSec::sign(xml_template: template, key: named_key);
+        assertEq(Type::String, signed.type());
+        assertNothing(XmlSec::verify(signed, path_mgr));
+
+        string encrypted = XmlSec::encrypt(xml_data: signed, xml_template: enc_tmpl, key: named_session_key,
+            key_manager: km);
+        assertEq(signed, XmlSec::decrypt(xml: encrypted, key_manager: km));
+
+        binary binary_data = binary("named argument binary data");
+        string encrypted_binary = XmlSec::encrypt(binary_data: binary_data, xml_template: bin_enc_tmpl,
+            key: named_session_key, key_manager: km);
+        assertEq(binary_data, XmlSec::decrypt(xml: encrypted_binary, key_manager: km));
+
+        assertThrows("XMLSEC-DECRYPT-ERROR", sub() {
+            auto ignored = XmlSec::decrypt(xml: "not valid xml", key: named_session_key);
+        });
     }
 
     testNegativeSigning() {

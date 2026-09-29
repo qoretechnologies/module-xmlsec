@@ -1,0 +1,40 @@
+Source: qore-xmlsec-module
+Section: interpreters
+Priority: optional
+Maintainer: David Nichols <david@qore.org>
+Build-Depends: debhelper-compat (= 13),
+               cmake (>= 3.5),
+               libqore-dev (>= 3.0.0~),
+               qore (>= 3.0.0~),
+               libxml2-dev,
+               libxmlsec1-dev,
+               pkgconf,
+               qore-xml-module <!nocheck>
+Build-Depends-Indep: doxygen <!nodoc>
+Standards-Version: 4.7.4
+Rules-Requires-Root: no
+Homepage: https://qore.org
+Vcs-Git: https://github.com/qoretechnologies/module-xmlsec.git
+Vcs-Browser: https://github.com/qoretechnologies/module-xmlsec
+
+Package: qore-xmlsec-module
+Architecture: any
+Depends: ${qore:Depends},
+         ${shlibs:Depends},
+         ${misc:Depends}
+Suggests: qore-xmlsec-module-doc
+Description: XML signatures and encryption module for Qore
+ This module signs, verifies, encrypts and decrypts XML documents using
+ the distribution XML Security Library and its OpenSSL backend.
+ Native compiler metadata is included for Qore's tools.
+
+Package: qore-xmlsec-module-doc
+Section: doc
+Architecture: all
+Multi-Arch: foreign
+Build-Profiles: <!nodoc>
+Depends: ${misc:Depends}
+Suggests: qore-xmlsec-module
+Description: documentation and examples for Qore's xmlsec module
+ This package contains the HTML API reference, example tests and public
+ test certificates/keys for Qore's XML Security module.

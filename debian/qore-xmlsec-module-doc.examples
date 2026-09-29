@@ -1,0 +1,3 @@
+test/xmlsec.qtest
+test/test-cert.pem
+test/test-key.pem

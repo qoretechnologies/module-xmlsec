@@ -1,0 +1,9 @@
+qore-xmlsec-module (1.0.1~git20260928.1-0qore1~ubuntu26.04) resolute; urgency=medium
+
+  * Package the native XML Security module, compiler metadata and examples.
+  * Use distribution XML Security, OpenSSL and libxml2 libraries.
+  * Add installed runtime and fresh compiler tests, hardening/debug symbols,
+    documentation profiles and reproducible offline builds.
+  * Report optional XML test dependencies through an explicit QUnit skip.
+
+ -- David Nichols <david@qore.org>  Tue, 29 Sep 2026 01:21:33 +0000

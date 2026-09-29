@@ -1,0 +1,75 @@
+Debian/Ubuntu packaging for the xmlsec module
+===========================================
+
+The native module and its compiler metadata belong to qore-xmlsec-module.
+HTML API reference, example test and public test certificates/keys belong to
+qore-xmlsec-module-doc. Debhelper creates matching detached debug symbols.
+The example keys are public fixtures and must never be used as real identities.
+
+Build prerequisites and supported scope
+--------------------------------------
+
+Use an isolated native build environment containing the packaged Qore runtime
+and libqore-dev, then install Build-Depends from debian/control. The current
+qualification target is Ubuntu 26.04 amd64 with Qore 3.0 development packages.
+Other releases and architectures need a matching SDK and native qualification.
+Cross builds are rejected because Qore/qpp execute during the build.
+
+Packages link distribution libxml2, XML Security Library and its OpenSSL backend;
+no crypto or XML implementation is bundled. The separate Qore XML module is
+needed only for the integration tests. Its private libxml2 does not export
+libxml2 symbols; xmlsec uses the distribution shared library.
+
+The build preserves distribution hardening flags. Native Qore modules resolve
+Qore symbols at load time without linking libqore. debian/rules derives minimum
+runtime and libqore SONAME dependencies from the installed SDK; dh_shlibdeps
+supplies other shared libraries. The runtime package is not Multi-Arch: same
+because it requires the native Qore interpreter. There are no AOT user modules
+or dependency trailers; ordinary dh_strip is appropriate.
+
+Source and binary builds
+------------------------
+
+Use a fresh version for every changed upload. This snapshot precedes version
+1.0.1. From a clean committed checkout:
+
+    version=1.0.1~git20260928.1
+    mkdir -p ../xmlsec-package-work
+    git archive --format=tar --prefix="qore-xmlsec-module-$version/" \
+        HEAD -- . ':!debian' | xz > \
+        "../xmlsec-package-work/qore-xmlsec-module_$version.orig.tar.xz"
+    tar -xf "../xmlsec-package-work/qore-xmlsec-module_$version.orig.tar.xz" \
+        -C ../xmlsec-package-work
+    cp -a debian "../xmlsec-package-work/qore-xmlsec-module-$version/"
+    cd "../xmlsec-package-work/qore-xmlsec-module-$version"
+    dpkg-buildpackage -S -us -uc
+
+Extract the .dsc with dpkg-source -x into a clean directory. With dependencies
+preinstalled, build as an unprivileged user with networking disabled:
+
+    dpkg-buildpackage -b -us -uc
+
+Architecture-only builds (-B) do not need Doxygen. Architecture-independent
+builds (-A) produce documentation. Both DEB_BUILD_OPTIONS=nodoc and
+DEB_BUILD_PROFILES=nodoc suppress documentation; the profile also omits the doc
+package. Do not use nocheck for qualification.
+
+Qualification and publication
+-----------------------------
+
+The upstream suite covers XML signatures/verification, XML and binary
+encryption/decryption, key management, named arguments, invalid input and
+concurrent operations. A module preflight requires the XML integration
+dependency during package qualification; standalone source runs explicitly
+skip when that optional external module is unavailable.
+
+Installed fixtures run away from checkout/build paths. A fresh qcc executable
+uses installed native class metadata, named constructors/methods, generated
+session keys and key managers. No external services or real credentials are
+needed. The minimal runtime must work without the SDK or Qore XML module.
+
+Check source/binary Lintian, debug symbols, hardening, installation without the
+SDK, documentation/debug coinstallation, dpkg -V, purge/reinstall and
+reproducibility from different build directories/parallelism settings.
+Retain source/package hashes, dependency versions, audit and test logs.
+Testing PPA publication is separate from approval for a final general release.

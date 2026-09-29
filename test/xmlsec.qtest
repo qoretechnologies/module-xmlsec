@@ -5,18 +5,28 @@
 %define NoXml
 %endtry
 
-# try loading the xmlsec module
-%try-module xmlsec
-%define NoXmlSec
-%endtry
+%prepend-module-path "${SCRIPT_DIR}/../build"
+%requires xmlsec
 
 # requires QUnit
 %requires QUnit
 
-# execute the XmlSecTest class as the application class
-%exec-class XmlSecTest
-
 %modern
+
+%ifdef NoXml
+%exec-class MissingXmlTest
+class MissingXmlTest inherits QUnit::Test {
+    constructor() : Test("XmlSecTest", "1.0", \ARGV) {
+        addTestCase("XML integration dependency", \missingXml());
+        set_return_value(main());
+    }
+
+    missingXml() {
+        testSkip("optional xml module is unavailable");
+    }
+}
+%else
+%exec-class XmlSecTest
 
 # option defaults
 const Defaults = {
@@ -106,14 +116,6 @@ class XmlSecTest inherits Test {
     }
 
     constructor() : Test("XmlSecTest", "1.0", \ARGV, MyOpts) {
-%ifdef NoXml
-        printf("xml module not available; skipping tests\n");
-%endif
-%ifdef NoXmlSec
-        printf("xmlsec module not available; skipping tests\n");
-%endif
-%ifndef NoXml
-%ifndef NoXmlSec
         addTestCase("basic sign/verify/encrypt/decrypt", \testBasicOperations());
         addTestCase("key operations", \testKeyOperations());
         addTestCase("key manager operations", \testKeyManagerOperations());
@@ -125,8 +127,6 @@ class XmlSecTest inherits Test {
         addTestCase("negative tests - key creation", \testNegativeKeyCreation());
         addTestCase("binary encryption/decryption", \testBinaryEncryption());
         addTestCase("multithreaded operations", \testMultithreaded());
-%endif
-%endif
 
         set_return_value(main());
 
@@ -588,3 +588,5 @@ class XmlSecTest inherits Test {
         printOption("-S,--show-messages", "show XML messages during tests", OptionColumn);
     }
 }
+
+%endif

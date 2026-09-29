@@ -1,0 +1,8 @@
+Tests: runtime
+Depends: qore-xmlsec-module, qore-xml-module
+# QUnit progress and expected invalid-XML diagnostics use stderr.
+Restrictions: allow-stderr
+
+Tests: compiler
+Depends: qore-xmlsec-module, libqore-dev
+Restrictions: allow-stderr

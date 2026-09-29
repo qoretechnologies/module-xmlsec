@@ -8,10 +8,9 @@
     to Qore, allowing qore programs to generate and verify XML documents with signatures and
     encryption.
 
-    This module is released under a choice of two licenses:
-    - <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">LGPL 2.1</a>
-    - MIT (see COPYING.MIT in the source distribution for more information)
-    .
+    This module is released under the
+    <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">LGPL 2.1</a>
+    or any later version; see COPYING and the source file headers.
     The module is tagged as such in the module's header (meaning it can be loaded unconditionally
     regardless of how the %Qore library was initialized).
 
@@ -173,6 +172,7 @@ data decrypted = XmlSec::decrypt(encrypted_xml, mgr);
     @subsection xmlsec_v_1_0_1 xmlsec Module Version 1.0.1
 
     <b>Bug Fixes:</b>
+    - Report an explicit QUnit skip when the optional XML test dependency is unavailable
     - Fixed memory leak in \c QoreXmlDoc::getString() where XML memory allocated by libxml2
       was not being freed after copying to the Qore string
       (<a href="https://github.com/qoretechnologies/qore/issues/5107">issue 5107</a>)

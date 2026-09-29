@@ -1,0 +1,11 @@
+#!/bin/sh
+# Copyright (C) 2026 David Nichols
+# SPDX-License-Identifier: MIT
+set -eu
+export LC_ALL=C.UTF-8
+unset QORE_MODULE_DIR QORE_MODULE_DIR_ONLY QORE_INCLUDE_DIR LD_LIBRARY_PATH LD_PRELOAD
+cp test/xmlsec.qtest test/test-cert.pem test/test-key.pem "$AUTOPKGTEST_TMP/"
+cd "$AUTOPKGTEST_TMP"
+# The integration suite must run, rather than skip a missing XML dependency.
+/usr/bin/qore -l xml -l xmlsec -e 'exit(0);'
+timeout 180 /usr/bin/qore xmlsec.qtest -v

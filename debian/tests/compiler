@@ -1,0 +1,20 @@
+#!/bin/sh
+# Copyright (C) 2026 David Nichols
+# SPDX-License-Identifier: MIT
+set -eu
+unset QORE_MODULE_DIR QORE_MODULE_DIR_ONLY QORE_INCLUDE_DIR LD_LIBRARY_PATH LD_PRELOAD
+cd "$AUTOPKGTEST_TMP"
+cat > xmlsec-smoke.q <<'EOF'
+%modern
+%requires xmlsec
+XmlSecKey key(key_id: xmlSecKeyDataAesId, num_bits: 256, key_type: xmlSecKeyDataTypeSession);
+key.setName(name: "package-test");
+XmlSecKey copy = key.copy();
+if (copy.getSize() != 256 || copy.getName() != "package-test") {
+    exit(1);
+}
+XmlSecKeyManager manager();
+manager.addKey(key: copy);
+EOF
+/usr/bin/qcc -o xmlsec-smoke xmlsec-smoke.q
+./xmlsec-smoke

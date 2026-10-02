@@ -1,108 +1,99 @@
-%define module_api %(qore --module-api 2>/dev/null)
-%define module_dir %{_libdir}/qore-modules
-
-%if 0%{?sles_version}
-
-%define dist .sles%{?sles_version}
-
+# Copyright (C) 2026 Qore Technologies, s.r.o.
+# SPDX-License-Identifier: MIT
+# Use the pinned source epoch for RPM headers and installed file timestamps.
+%global source_date_epoch_from_changelog 1
+%global use_source_date_epoch_as_buildtime 1
+%if v"%{rpmversion}" >= v"4.20"
+%global build_mtime_policy clamp_to_source_date_epoch
 %else
-%if 0%{?suse_version}
-
-# get *suse release major version
-%define os_maj %(echo %suse_version|rev|cut -b3-|rev)
-# get *suse release minor version without trailing zeros
-%define os_min %(echo %suse_version|rev|cut -b-2|rev|sed s/0*$//)
-
-%if %suse_version > 1010
-%define dist .opensuse%{os_maj}_%{os_min}
-%else
-%define dist .suse%{os_maj}_%{os_min}
+%global clamp_mtime_to_source_date_epoch 1
 %endif
-
-%endif
-%endif
-
-# see if we can determine the distribution type
-%if 0%{!?dist:1}
-%define rh_dist %(if [ -f /etc/redhat-release ];then cat /etc/redhat-release|sed "s/[^0-9.]*//"|cut -f1 -d.;fi)
-%if 0%{?rh_dist}
-%define dist .rhel%{rh_dist}
-%else
-%define dist .unknown
-%endif
-%endif
-
-Summary: XML Security Module for Qore
+%bcond_without tests
+%bcond_without docs
 Name: qore-xmlsec-module
 Version: 1.0.1
-Release: 1%{dist}
+Release: 2%{?dist}
+Summary: XML signing, verification and encryption for Qore
 License: LGPL-2.1-or-later
-Group: Development/Languages
-URL: https://qoretechnologies.com/qore
-Source: https://github.com/qoretechnologies/module-xmlsec/releases/download/v%{version}/%{name}-%{version}.tar.bz2
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-Requires: /usr/bin/env
-Requires: qore-module-api-%{module_api}
+URL: https://github.com/qoretechnologies/module-xmlsec
+Source0: %{name}-%{version}.tar.xz
+BuildRequires: cmake >= 3.5
+BuildRequires: make
 BuildRequires: gcc-c++
-BuildRequires: cmake >= 2.8.12
-BuildRequires: qore-devel >= 1.0
-BuildRequires: qore >= 1.0
-BuildRequires: libxml2-devel
-Requires: xmlsec1
-Requires: xmlsec1-openssl
-BuildRequires: xmlsec1-devel
-BuildRequires: xmlsec1-openssl-devel
+BuildRequires: pkgconfig(xmlsec1-openssl)
+BuildRequires: pkgconfig(libxml-2.0)
+BuildRequires: python3
+%if %{with tests}
+BuildRequires: qore-xml-module >= 2.3.0
+%endif
+BuildRequires: qore-devel >= 3.0.0~
+BuildRequires: qore-rpm-macros >= 3.0.0~
+%if %{with docs}
+BuildRequires: doxygen
 %if 0%{?suse_version}
-BuildRequires: pkg-config
+BuildRequires: util-linux
 %else
-BuildRequires: pkgconfig
+BuildRequires: util-linux-core
+%endif
 %endif
 
 %description
-This module provides classes and functions supporting the xmlenc and xmldsig
-standards from the xmlsec library for the Qore Programming Language.
+Native XML signatures, verification, encryption, decryption and key management
+using the distribution XML Security Library with its OpenSSL backend. Includes
+compiler metadata; the XML integration module is needed only by the test suite.
 
-%if 0%{?suse_version}
-%debug_package
+%if %{with docs}
+%package doc
+Summary: XML Security reference documentation
+BuildArch: noarch
+%description doc
+API reference for Qore's XML Security classes.
 %endif
 
 %prep
-%setup -q
-
+%autosetup
 %build
-%if 0%{?el7}
-# enable devtoolset-7 for C++11 support on RHEL 7
-. /opt/rh/devtoolset-7/enable
+%{?set_build_flags}
+. %{_rpmconfigdir}/qore/module-env.sh
+qore_set_source_prefix_maps "%{qore_debug_source_dir}"
+cmake -S . -B build -G 'Unix Makefiles' \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE=-DNDEBUG \
+  -DCMAKE_INSTALL_PREFIX=%{_prefix} -DCMAKE_INSTALL_LIBDIR=%{_lib} \
+  -DCMAKE_SKIP_RPATH=ON -DCMAKE_IGNORE_PREFIX_PATH=/usr/local \
+  -DQore_DIR=%{_libdir}/cmake/Qore -DQORE_EXECUTABLE=/usr/bin/qore \
+  -DQORE_QPP_EXECUTABLE=/usr/bin/qpp -DQORE_QCC_EXECUTABLE=/usr/bin/qcc \
+  -DQORE_XMLSEC_STRICT_DOCS=ON \
+  -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=%{!?with_docs:ON}%{?with_docs:OFF}
+cmake --build build -- %{?_smp_mflags}
+%if %{with docs}
+cmake --build build --target docs -- %{?_smp_mflags}
 %endif
-export CXXFLAGS="%{?optflags}"
-cmake -DCMAKE_INSTALL_PREFIX=%{_prefix} -DCMAKE_BUILD_TYPE=RELEASE .
-make %{?_smp_mflags}
-
 %install
-rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
+DESTDIR=%{buildroot} cmake --install build
+chmod 755 %{buildroot}%{_libdir}/qore-modules/xmlsec-api-*.qmod
+%if %{with docs}
+install -d %{buildroot}%{_docdir}/%{name}-doc
+cp -a build/docs/xmlsec/html %{buildroot}%{_docdir}/%{name}-doc/
+hardlink -t -O %{buildroot}%{_docdir}/%{name}-doc
+%endif
+%check
+%if %{with tests}
+. %{_rpmconfigdir}/qore/module-env.sh
+python3 -B -W error rpm/test_fixture.py -v
+python3 -B -W error rpm/run-tests.py --build-dir "$PWD/build"
+%endif
 %files
-%defattr(-,root,root,-)
-%{module_dir}
-%doc COPYING README RELEASE-NOTES ChangeLog AUTHORS
-
+%license COPYING
+%doc README RELEASE-NOTES
+%{_libdir}/qore-modules/xmlsec-api-*.qmod
+%dir %{_datadir}/qore/metadata/xmlsec
+%{_datadir}/qore/metadata/xmlsec/*.meta.json
+%if %{with docs}
+%files doc
+%license COPYING
+%doc %{_docdir}/%{name}-doc/
+%endif
 %changelog
-* Thu Jan 02 2025 David Nichols <david@qore.org> 1.0.1
-- updated to version 1.0.1
-- fixed memory leak in QoreXmlDoc::getString()
-- fixed typo in error message
-- fixed thread safety issues in key operations
-- added comprehensive test coverage
-- updated documentation with examples
-
-* Thu Nov 25 2021 David Nichols <david@qore.org> 1.0.0
-- updated to version 1.0.0
-- fixed build with newer libxmlsec1 builds
-- fixed tests
-
-* Tue Sep 2 2008 David Nichols <david_nichols@users.sourceforge.net>
-- initial spec file for separate xmlsec release
+* Fri Oct 02 2026 David Nichols <david@qore.org> - 1.0.1-2
+- Package native XML Security bindings, compiler metadata and API reference.
+- Require all XML integration tests and isolate installed package qualification.

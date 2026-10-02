@@ -139,7 +139,7 @@ data decrypted = XmlSec::decrypt(encrypted_xml, mgr);
 
     @section xmlsec_key_types Supported Key Types
 
-    The module supports the following key types through the @ref xmlsec_keydataid_constants:
+    The module supports the following key types through the @ref xmlsec_keydataid_constants "key ID constants":
     - @ref Qore::XmlSec::xmlSecKeyDataAesId "xmlSecKeyDataAesId" - AES symmetric keys
     - @ref Qore::XmlSec::xmlSecKeyDataDesId "xmlSecKeyDataDesId" - DES symmetric keys
     - @ref Qore::XmlSec::xmlSecKeyDataDsaId "xmlSecKeyDataDsaId" - DSA keys
@@ -147,7 +147,7 @@ data decrypted = XmlSec::decrypt(encrypted_xml, mgr);
     - @ref Qore::XmlSec::xmlSecKeyDataRsaId "xmlSecKeyDataRsaId" - RSA keys
     - @ref Qore::XmlSec::xmlSecKeyDataX509Id "xmlSecKeyDataX509Id" - X.509 certificates
 
-    Keys can be loaded from various formats using @ref xmlsec_keydataformat_constants:
+    Keys can be loaded from various formats using @ref xmlsec_keydataformat_constants "key format constants":
     - @ref Qore::XmlSec::xmlSecKeyDataFormatPem "xmlSecKeyDataFormatPem" - PEM format
     - @ref Qore::XmlSec::xmlSecKeyDataFormatDer "xmlSecKeyDataFormatDer" - DER format
     - @ref Qore::XmlSec::xmlSecKeyDataFormatPkcs8Pem "xmlSecKeyDataFormatPkcs8Pem" - PKCS#8 PEM
@@ -172,6 +172,9 @@ data decrypted = XmlSec::decrypt(encrypted_xml, mgr);
     @subsection xmlsec_v_1_0_1 xmlsec Module Version 1.0.1
 
     <b>Bug Fixes:</b>
+    - Apply entity and DTD options per document, including background threads, without changing libxml2 parser defaults
+    - Free serialization buffers when Qore string allocation throws
+    - Support CMake 4 and optional strict API documentation builds
     - Report an explicit QUnit skip when the optional XML test dependency is unavailable
     - Fixed memory leak in \c QoreXmlDoc::getString() where XML memory allocated by libxml2
       was not being freed after copying to the Qore string

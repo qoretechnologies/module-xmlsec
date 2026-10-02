@@ -1,2 +1,8 @@
+2026 build and documentation updates
+------------------------------------
+- Apply XML entity/DTD options per document on every calling thread.
+- Report XML parser details through Qore exceptions and make serialization buffers exception safe.
+- Support CMake 4 and opt-in strict public API documentation checks.
+
 See the Doxygen documentation for release notes:
 https://qoretechnologies.github.io/qore/modules/xmlsec/

@@ -16,7 +16,7 @@ BUILD AND INSTALL
 
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
 make
 sudo make install
 
@@ -38,3 +38,8 @@ Run-time:
 - Qore 1.0+
 - xmlsec1
 - xmlsec1-openssl
+
+Use -DQORE_XMLSEC_STRICT_DOCS=ON to make documentation warnings fail the
+build. The public reference includes the main guide and generated declarations
+for XmlSec, XmlSecKey and XmlSecKeyManager. CMake regeneration preserves this
+strict policy; CMake 4 is supported.

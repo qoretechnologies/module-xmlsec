@@ -3,7 +3,7 @@
 
     Qore Programming Language
 
-    Copyright 2003 - 2021 Qore Technologies, s.r.o.
+    Copyright 2003 - 2026 Qore Technologies, s.r.o.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -155,7 +155,7 @@ int q_xmlsec_verify(ExceptionSink* xsink, const QoreStringNode* signed_string, Q
 
     QoreXmlDoc doc(str_utf8->c_str());
     if (!doc || !doc.getRootElement()) {
-        xsink->raiseException("XMLSEC-VERIFY-ERROR", "unable to parse signed XML string");
+        xsink->raiseException("XMLSEC-VERIFY-ERROR", "unable to parse signed XML string: %s", doc.getParseError());
         return -1;
     }
 
@@ -198,7 +198,7 @@ int q_xmlsec_verify(ExceptionSink* xsink, const QoreStringNode* signed_string, Q
 
     QoreXmlDoc doc(str_utf8->getBuffer());
     if (!doc || !doc.getRootElement()) {
-        xsink->raiseException("XMLSEC-VERIFY-ERROR", "unable to parse signed XML string");
+        xsink->raiseException("XMLSEC-VERIFY-ERROR", "unable to parse signed XML string: %s", doc.getParseError());
         return -1;
     }
 
@@ -358,7 +358,7 @@ static string XmlSec::encrypt(string xml_data, string xml_template, XmlSecKey[Qo
 
     QoreXmlDoc doc(template_utf8->getBuffer());
     if (!doc || !doc.getRootElement()) {
-        xsink->raiseException("XMLSEC-ENCRYPT-ERROR", "unable to parse XML template string");
+        xsink->raiseException("XMLSEC-ENCRYPT-ERROR", "unable to parse XML template string: %s", doc.getParseError());
         return QoreValue();
     }
 
@@ -391,7 +391,8 @@ static string XmlSec::encrypt(string xml_data, string xml_template, XmlSecKey[Qo
 
     QoreXmlDoc edoc(edoc_utf8->getBuffer());
     if (!edoc || !edoc.getRootElement()) {
-        xsink->raiseException("XMLSEC-ENCRYPT-ERROR", "failed to parse XML data to encrypt passed as first argument to XmlSec::encrypt()");
+        xsink->raiseException("XMLSEC-ENCRYPT-ERROR", "failed to parse XML data to encrypt passed as first argument to XmlSec::encrypt(): %s",
+            edoc.getParseError());
         return QoreValue();
     }
 
@@ -430,7 +431,7 @@ static string XmlSec::encrypt(binary binary_data, string xml_template, XmlSecKey
 
     QoreXmlDoc doc(template_utf8->getBuffer());
     if (!doc || !doc.getRootElement()) {
-        xsink->raiseException("XMLSEC-ENCRYPT-ERROR", "unable to parse XML template string");
+        xsink->raiseException("XMLSEC-ENCRYPT-ERROR", "unable to parse XML template string: %s", doc.getParseError());
         return QoreValue();
     }
 
@@ -483,7 +484,7 @@ static data XmlSec::decrypt(string xml, XmlSecKey[QoreXmlSecKey] key) [flags=RET
 
     QoreXmlDoc doc(xml_utf8->getBuffer());
     if (!doc || !doc.getRootElement()) {
-        xsink->raiseException("XMLSEC-DECRYPT-ERROR", "unable to parse XML string");
+        xsink->raiseException("XMLSEC-DECRYPT-ERROR", "unable to parse XML string: %s", doc.getParseError());
         return QoreValue();
     }
 
@@ -536,7 +537,7 @@ static data XmlSec::decrypt(string xml, XmlSecKeyManager[QoreXmlSecKeyManager] k
 
     QoreXmlDoc doc(xml_utf8->getBuffer());
     if (!doc || !doc.getRootElement()) {
-        xsink->raiseException("XMLSEC-DECRYPT-ERROR", "unable to parse XML string");
+        xsink->raiseException("XMLSEC-DECRYPT-ERROR", "unable to parse XML string: %s", doc.getParseError());
         return QoreValue();
     }
 
@@ -586,7 +587,7 @@ static string XmlSec::sign(string xml_template, XmlSecKey[QoreXmlSecKey] key) [f
 
     QoreXmlDoc doc(template_utf8->getBuffer());
     if (!doc || !doc.getRootElement()) {
-        xsink->raiseException("XMLSEC-SIGN-ERROR", "unable to parse XML template string");
+        xsink->raiseException("XMLSEC-SIGN-ERROR", "unable to parse XML template string: %s", doc.getParseError());
         return QoreValue();
     }
 

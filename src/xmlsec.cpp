@@ -1,7 +1,7 @@
 /*
     xmlsec Qore module
 
-    Copyright (C) 2018 Qore Technologies, s.r.o.
+    Copyright (C) 2018 - 2026 Qore Technologies, s.r.o.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -83,12 +83,6 @@ DLLLOCAL void preinitXmlSecKeyClass();
 DLLLOCAL void preinitXmlSecKeyManagerClass();
 
 static void xmlsec_module_init(QoreModuleInitContext& ctx, ExceptionSink& xsink) {
-    xmlLoadExtDtdDefaultValue = XML_DETECT_IDS | XML_COMPLETE_ATTRS;
-    xmlSubstituteEntitiesDefault(1);
-#ifndef XMLSEC_NO_XSLT
-    xmlIndentTreeOutput = 0;
-#endif // XMLSEC_NO_XSLT
-
     // Init xmlsec library
     if (xmlSecInit() < 0) {
         xsink.raiseException("MODULE-INIT-ERROR", "xmlsec initialization failed");

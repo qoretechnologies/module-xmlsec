@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.5...3.31)
 
 project(qore-xmlsec-module)
 
@@ -13,6 +13,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 find_package(Qore 1.0 REQUIRED)
 find_package(LibXml2 REQUIRED)
 find_package(XMLSec REQUIRED)
+
+option(QORE_XMLSEC_STRICT_DOCS "Fail XML Security documentation builds on warnings" OFF)
 
 list(APPEND CMAKE_REQUIRED_LIBRARIES ${LIBXML2_LIBRARIES})
 
@@ -79,6 +81,14 @@ if (DEFINED ENV{DOXYGEN_EXECUTABLE})
     set(DOXYGEN_EXECUTABLE $ENV{DOXYGEN_EXECUTABLE})
 endif()
 
+# Restrict the public reference to generated QPP declarations and the main page.
+set(MODULE_DOX_INPUT "${CMAKE_CURRENT_BINARY_DIR}/mainpage.dox")
+foreach(_xmlsec_qpp IN LISTS QPP_SRC)
+    get_filename_component(_xmlsec_name "${_xmlsec_qpp}" NAME_WE)
+    list(APPEND MODULE_DOX_INPUT "${CMAKE_CURRENT_BINARY_DIR}/${_xmlsec_name}.dox.h")
+endforeach()
+string(REPLACE ";" " " MODULE_DOX_INPUT "${MODULE_DOX_INPUT}")
+
 qore_external_binary_module(${module_name} ${PROJECT_VERSION} "${XMLSEC1_LIBRARIES}" "${XMLSEC1_OPENSSL_LIBRARIES}")
 #qore_user_modules("${QMOD}")
 install(PROGRAMS ${SCRIPTS} DESTINATION bin)
@@ -99,4 +109,7 @@ if (DOXYGEN_FOUND)
     qore_wrap_dox(QORE_DOX_SRC ${QORE_DOX_TMPL_SRC})
     add_custom_target(QORE_MOD_DOX_FILES DEPENDS ${QORE_DOX_SRC})
     add_dependencies(docs-module QORE_MOD_DOX_FILES)
+    if (QORE_XMLSEC_STRICT_DOCS)
+        file(APPEND "${CMAKE_BINARY_DIR}/Doxyfile" "\nWARN_AS_ERROR = FAIL_ON_WARNINGS\n")
+    endif()
 endif()

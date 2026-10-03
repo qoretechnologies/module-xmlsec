@@ -73,6 +73,10 @@ SET (module_name "xmlsec")
 
 set(QORE_DOX_TMPL_SRC
   docs/mainpage.dox.tmpl
+    docs/guide-xmlsec_errors.dox.tmpl
+    docs/guide-xmlsec_examples.dox.tmpl
+    docs/guide-xmlsec_key_types.dox.tmpl
+    docs/guide-xmlsecreleasenotes.dox.tmpl
 )
 
 add_library(${module_name} MODULE ${QPP_SOURCES} ${CPP_SRC})
@@ -89,6 +93,12 @@ foreach(_xmlsec_qpp IN LISTS QPP_SRC)
 endforeach()
 string(REPLACE ";" " " MODULE_DOX_INPUT "${MODULE_DOX_INPUT}")
 
+list(APPEND MODULE_DOX_INPUT
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-xmlsec_errors.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-xmlsec_examples.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-xmlsec_key_types.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-xmlsecreleasenotes.dox
+)
 qore_external_binary_module(${module_name} ${PROJECT_VERSION} "${XMLSEC1_LIBRARIES}" "${XMLSEC1_OPENSSL_LIBRARIES}")
 #qore_user_modules("${QMOD}")
 install(PROGRAMS ${SCRIPTS} DESTINATION bin)

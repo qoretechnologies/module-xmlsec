@@ -1,0 +1,62 @@
+/* Copyright (C) 2026 Qore Technologies, s.r.o. */
+
+/** @page xmlsecreleasenotesguide Release Notes
+
+    @tableofcontents
+
+    @section xmlsec_v_1_0_1 xmlsec Module Version 1.0.1
+
+    <b>Bug Fixes:</b>
+    - Apply entity and DTD options per document, including background threads, without changing libxml2 parser defaults
+    - Free serialization buffers when Qore string allocation throws
+    - Support CMake 4 and optional strict API documentation builds
+    - Report an explicit QUnit skip when the optional XML test dependency is unavailable
+    - Fixed memory leak in \c QoreXmlDoc::getString() where XML memory allocated by libxml2
+      was not being freed after copying to the Qore string
+      (<a href="https://github.com/qoretechnologies/qore/issues/5107">issue 5107</a>)
+    - Fixed \c XmlSecKey::getName() returning incorrect value due to xmlChar pointer cast issue
+    - Fixed typo in error message: "could node find node" corrected to "could not find node"
+    - Fixed syntax error (extra closing parenthesis) in \c XmlSecKey::setCertificate()
+    - Fixed potential null pointer dereference in \c DSigCtx::getTransformStatus()
+
+    <b>Thread Safety Improvements:</b>
+    - Added proper locking to \c XmlSecKey::clone() and \c XmlSecKey::copy() methods
+    - Added proper locking to \c XmlSecKeyManager::getKeyManager() method
+    - Added big_lock synchronization to \c DSigCtx::verify() for consistency with sign operations
+
+    <b>Build System Updates:</b>
+    - Updated GitLab CI to use modern k8s tag
+    - Fixed GitHub API calls to use correct organization and token-based authentication
+    - Updated spec file for CMake-based builds
+    - Updated README with CMake build instructions
+
+    <b>Documentation:</b>
+    - Added comprehensive usage examples for signing, verification, encryption, and decryption
+    - Added documentation for supported key types and formats
+    - Added error handling documentation
+    - Updated all documentation to reflect current version
+
+    <b>Test Suite:</b>
+    - Added comprehensive negative tests for error conditions
+    - Added tests for key operations (copy, getName, setName, getType, getSize)
+    - Added tests for various key formats
+    - Added tests for binary encryption/decryption
+    - Added tests for certificate loading methods
+    - Added tests for tampered signature detection
+    - Added tests for wrong key verification failures
+    - Updated test certificates (regenerated with 2048-bit RSA keys)
+    - Updated signature templates to use SHA256 instead of deprecated SHA1
+
+    @section xmlsec_v_1_0_0 xmlsec Module Version 1.0.0
+
+    - updated for new xmlsec builds; fixed build and test
+      (<a href="https://github.com/qorelanguage/qore/issues/4343">issue 4343</a>)
+
+    @section xmlsec_v_0_0_4 xmlsec Module Version 0.0.4
+
+    - updated for Qore 0.9
+
+    @section xmlsec_v_0_0_3 xmlsec Module Version 0.0.3
+
+    - initial release
+*/

@@ -1,0 +1,120 @@
+/* Copyright (C) 2026 Qore Technologies, s.r.o. */
+
+/** @page xmlsec_examplesguide Usage Examples
+
+    @tableofcontents
+
+    @section xmlsec_sign_verify Signing and Verifying XML
+
+    @par Example: Sign an XML Document
+    @code{.py}
+%requires xmlsec
+%requires xml
+
+# Create a key from a PEM file
+XmlSecKey key(File::readTextFile("private-key.pem"), xmlSecKeyDataFormatPem, "password");
+key.setCertificate(File::readTextFile("certificate.pem"), xmlSecKeyDataFormatCertPem);
+
+# Create the signature template (using the xml module)
+hash sig_template = {
+    "Document": {
+        "Data": "content to sign",
+        "Signature": {
+            "^attributes^": {"xmlns": "http://www.w3.org/2000/09/xmldsig#"},
+            "SignedInfo": {
+                "CanonicalizationMethod": {
+                    "^attributes^": {"Algorithm": "http://www.w3.org/TR/2001/REC-xml-c14n-20010315"},
+                },
+                "SignatureMethod": {
+                    "^attributes^": {"Algorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"},
+                },
+                "Reference": {
+                    "^attributes^": {"URI": ""},
+                    "Transforms": {
+                        "Transform": {
+                            "^attributes^": {"Algorithm": "http://www.w3.org/2000/09/xmldsig#enveloped-signature"},
+                        },
+                    },
+                    "DigestMethod": {
+                        "^attributes^": {"Algorithm": "http://www.w3.org/2001/04/xmlenc#sha256"},
+                    },
+                    "DigestValue": NOTHING,
+                },
+            },
+            "SignatureValue": NOTHING,
+            "KeyInfo": {
+                "X509Data": NOTHING,
+            },
+        },
+    },
+};
+
+# Sign the template
+string signed_xml = XmlSec::sign(make_xml(sig_template), key);
+    @endcode
+
+    @par Example: Verify a Signed XML Document
+    @code{.py}
+# Verify using the same key (or public key/certificate)
+try {
+    XmlSec::verify(signed_xml, key);
+    printf("Signature is valid\n");
+} catch (hash<ExceptionInfo> ex) {
+    printf("Signature verification failed: %s\n", ex.desc);
+}
+    @endcode
+
+    @section xmlsec_encrypt_decrypt Encrypting and Decrypting XML
+
+    @par Example: Encrypt Data with a Session Key
+    @code{.py}
+# Create a session key for AES encryption
+XmlSecKey session_key(xmlSecKeyDataAesId, 256, xmlSecKeyDataTypeSession);
+
+# Create certificate key for encrypting the session key
+XmlSecKey cert_key(File::readTextFile("private-key.pem"), xmlSecKeyDataFormatPem, "password");
+cert_key.setCertificate(File::readTextFile("certificate.pem"), xmlSecKeyDataFormatCertPem);
+
+# Set up key manager
+XmlSecKeyManager mgr();
+mgr.addKey(cert_key);
+
+# Create encryption template
+hash enc_template = {
+    "EncryptedData": {
+        "^attributes^": {
+            "xmlns": "http://www.w3.org/2001/04/xmlenc#",
+            "Type": "http://www.w3.org/2001/04/xmlenc#Element",
+        },
+        "EncryptionMethod": {
+            "^attributes^": {"Algorithm": "http://www.w3.org/2001/04/xmlenc#aes256-cbc"},
+        },
+        "KeyInfo": {
+            "^attributes^": {"xmlns": "http://www.w3.org/2000/09/xmldsig#"},
+            "EncryptedKey": {
+                "^attributes^": {"xmlns": "http://www.w3.org/2001/04/xmlenc#"},
+                "EncryptionMethod": {
+                    "^attributes^": {"Algorithm": "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p"},
+                },
+                "KeyInfo": {
+                    "^attributes^": {"xmlns": "http://www.w3.org/2000/09/xmldsig#"},
+                    "X509Data": NOTHING,
+                },
+                "CipherData": {"CipherValue": NOTHING},
+            },
+        },
+        "CipherData": {"CipherValue": NOTHING},
+    },
+};
+
+# Encrypt the data
+string encrypted_xml = XmlSec::encrypt("<SensitiveData>secret</SensitiveData>",
+    make_xml(enc_template), session_key, mgr);
+    @endcode
+
+    @par Example: Decrypt Encrypted XML
+    @code{.py}
+# Decrypt using the key manager (which contains the private key)
+data decrypted = XmlSec::decrypt(encrypted_xml, mgr);
+    @endcode
+*/

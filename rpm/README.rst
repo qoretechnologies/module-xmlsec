@@ -28,3 +28,7 @@ On an SDK image add ``--compiler`` to compile and execute the named-argument
 key-management example. Missing integration dependencies fail qualification
 before the suite can take its optional-dependency skip path. The fixture keys
 are public test identities and are not deployment credentials.
+
+Release 3 uses Qore's installed module directory and configures only variables
+consumed by this native module. Optional Java bindings are disabled because the
+RPM does not ship a Java artifact. Strict API documentation remains enabled.

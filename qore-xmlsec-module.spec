@@ -12,7 +12,7 @@
 %bcond_without docs
 Name: qore-xmlsec-module
 Version: 1.0.1
-Release: 2%{?dist}
+Release: 3%{?dist}
 Summary: XML signing, verification and encryption for Qore
 License: LGPL-2.1-or-later
 URL: https://github.com/qoretechnologies/module-xmlsec
@@ -58,10 +58,10 @@ API reference for Qore's XML Security classes.
 qore_set_source_prefix_maps "%{qore_debug_source_dir}"
 cmake -S . -B build -G 'Unix Makefiles' \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE=-DNDEBUG \
-  -DCMAKE_INSTALL_PREFIX=%{_prefix} -DCMAKE_INSTALL_LIBDIR=%{_lib} \
+  -DCMAKE_INSTALL_PREFIX=%{_prefix} \
   -DCMAKE_SKIP_RPATH=ON -DCMAKE_IGNORE_PREFIX_PATH=/usr/local \
   -DQore_DIR=%{_libdir}/cmake/Qore -DQORE_EXECUTABLE=/usr/bin/qore \
-  -DQORE_QPP_EXECUTABLE=/usr/bin/qpp -DQORE_QCC_EXECUTABLE=/usr/bin/qcc \
+  -DQORE_QPP_EXECUTABLE=/usr/bin/qpp -DQORE_GENERATE_JAVA_BINDINGS=OFF \
   -DQORE_XMLSEC_STRICT_DOCS=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=%{!?with_docs:ON}%{?with_docs:OFF}
 cmake --build build -- %{?_smp_mflags}
@@ -94,6 +94,9 @@ python3 -B -W error rpm/run-tests.py --build-dir "$PWD/build"
 %doc %{_docdir}/%{name}-doc/
 %endif
 %changelog
+* Tue Oct 06 2026 David Nichols <david@qore.org> - 1.0.1-3
+- Disable unshipped Java bindings and remove unused CMake variables.
+
 * Fri Oct 02 2026 David Nichols <david@qore.org> - 1.0.1-2
 - Package native XML Security bindings, compiler metadata and API reference.
 - Require all XML integration tests and isolate installed package qualification.

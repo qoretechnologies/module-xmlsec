@@ -70,7 +70,7 @@ public:
     DLLLOCAL int loadCertFromPath(ExceptionSink* xsink, const char* filename, xmlSecKeyDataFormat format,
             xmlSecKeyDataType type) {
         // check filesystem sandbox access before loading certificate from file
-        QoreSandboxManagerHelper smh;
+        QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
         if (smh && !smh->checkFilesystemAccess(filename, QSEC_READ, xsink)) {
             return -1;
         }

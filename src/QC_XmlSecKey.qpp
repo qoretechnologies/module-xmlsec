@@ -94,7 +94,7 @@ XmlSec key(key_id, num_bits, key_type);
 XmlSecKey::constructor(int key_id, int num_bits, int key_type) [flags=NAMED_ARGS] {
     xmlSecKeyDataId keyid = xmlsec_get_keydata_id(key_id);
     if (!keyid) {
-        xsink->raiseException("XMLSECKEY-KEYID-ERROR", "invalid key ID %d given", key_id);
+        xsink->raiseException("XMLSECKEY-KEYID-ERROR", "invalid key ID " QLLD " given", key_id);
         return;
     }
 

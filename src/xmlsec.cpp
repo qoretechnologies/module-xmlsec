@@ -32,6 +32,9 @@ static void xmlsec_module_init(QoreModuleInitContext& ctx, ExceptionSink& xsink)
 static void xmlsec_module_ns_init(QoreNamespace* rns, QoreNamespace* qns, ExceptionSink& xsink);
 static void xmlsec_module_delete();
 
+// the module's namespace; purged when the module is deleted (see QoreModuleInfo::ns)
+QoreNamespace XmlSec_NS("Qore::XmlSec");
+
 extern "C" DLLEXPORT void xmlsec_qore_module_desc(QoreModuleInfo& mod_info) {
     mod_info.name = "xmlsec";
     mod_info.version = PACKAGE_VERSION;
@@ -43,6 +46,10 @@ extern "C" DLLEXPORT void xmlsec_qore_module_desc(QoreModuleInfo& mod_info) {
     mod_info.init = xmlsec_module_init;
     mod_info.ns_init = xmlsec_module_ns_init;
     mod_info.del = xmlsec_module_delete;
+#ifdef QORE_HAS_MODULE_NS_PURGE
+    // the namespace is purged when the module is deleted, before the types are freed (see QoreModuleInfo::ns)
+    mod_info.ns = &XmlSec_NS;
+#endif
     mod_info.license = QL_LGPL;
     mod_info.license_str = "LGPL";
 }
@@ -58,7 +65,6 @@ static key_data_map_t key_data_map = {
     {XMLSEC_KEYDATA_RAWX509CERTID, xmlSecKeyDataRawX509CertId},
 };
 
-QoreNamespace XmlSec_NS("Qore::XmlSec");
 qore_type_t NT_XMLSECKEYDATAID = -1;
 qore_type_t NT_XMLSECKEYDATAFORMAT = -1;
 

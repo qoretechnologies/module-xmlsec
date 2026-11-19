@@ -43,3 +43,12 @@ Use -DQORE_XMLSEC_STRICT_DOCS=ON to make documentation warnings fail the
 build. The public reference includes the main guide and generated declarations
 for XmlSec, XmlSecKey and XmlSecKeyManager. CMake regeneration preserves this
 strict policy; CMake 4 is supported.
+
+Develop CI
+----------
+
+On develop, each platform can reuse its successful full job for the same Git
+tree and Qore environment, including after a squash merge. Both platforms
+must have passed in the same prior pipeline. Reused statuses link to the
+original jobs. A changed fingerprint or missing evidence runs the full suite.
+Set QORE_CI_FORCE_FULL=1 to force both suites.
